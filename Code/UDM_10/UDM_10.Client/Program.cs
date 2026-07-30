@@ -1,17 +1,23 @@
+using UDM_10.Client.Shared.Config;
+using UDM_10.Client.Server;
+
 namespace UDM_10.Client
 {
-    internal static class Program
-    {
-        /// <summary>
-        ///  The main entry point for the application.
-        /// </summary>
-        [STAThread]
+  
+        internal static class Program
+        {
+            [STAThread]
         static void Main()
         {
-            // To customize application configuration such as set high DPI settings or default font,
-            // see https://aka.ms/applicationconfiguration.
+            ServerConfig.Load();
+
+            ClientConfig.Load();
+
+            Logger.Init();
+
             ApplicationConfiguration.Initialize();
+
             Application.Run(new MainForm());
         }
     }
-}
+    }
