@@ -1,0 +1,14 @@
+C:\Users\DELL\source\repos\Server\Server\bin\Debug\net10.0\Server.exe
+C:\Users\DELL\source\repos\Server\Server\bin\Debug\net10.0\Server.deps.json
+C:\Users\DELL\source\repos\Server\Server\bin\Debug\net10.0\Server.runtimeconfig.json
+C:\Users\DELL\source\repos\Server\Server\bin\Debug\net10.0\Server.dll
+C:\Users\DELL\source\repos\Server\Server\bin\Debug\net10.0\Server.pdb
+C:\Users\DELL\source\repos\Server\Server\obj\Debug\net10.0\Server.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\DELL\source\repos\Server\Server\obj\Debug\net10.0\Server.AssemblyInfoInputs.cache
+C:\Users\DELL\source\repos\Server\Server\obj\Debug\net10.0\Server.AssemblyInfo.cs
+C:\Users\DELL\source\repos\Server\Server\obj\Debug\net10.0\Server.csproj.CoreCompileInputs.cache
+C:\Users\DELL\source\repos\Server\Server\obj\Debug\net10.0\Server.dll
+C:\Users\DELL\source\repos\Server\Server\obj\Debug\net10.0\refint\Server.dll
+C:\Users\DELL\source\repos\Server\Server\obj\Debug\net10.0\Server.pdb
+C:\Users\DELL\source\repos\Server\Server\obj\Debug\net10.0\Server.genruntimeconfig.cache
+C:\Users\DELL\source\repos\Server\Server\obj\Debug\net10.0\ref\Server.dll
