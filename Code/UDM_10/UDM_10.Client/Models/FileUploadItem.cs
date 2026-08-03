@@ -2,9 +2,6 @@
 using System.Runtime.CompilerServices;
 
 namespace UDM_10.Client.Models;
-
-public enum UploadStatus { Waiting, Uploading, Completed, Failed, Cancelled }
-
 // Se bo sung logic tinh SentBytes/ProgressPercent day du hon o Tuan 3
 public class FileUploadItem : INotifyPropertyChanged
 {
