@@ -1,5 +1,6 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Sockets;
+using UDM_10.Client.Shared.Config;
 
 class Program
 {
@@ -11,12 +12,23 @@ class Program
 
     static async Task RunAsync()
     {
+        // Load cấu hình từ appsettings.json
+        ServerConfig.Load();
+
+
         TcpListener listener =
-            new TcpListener(IPAddress.Any, 5000);
+            new TcpListener(
+                IPAddress.Any,
+                ServerConfig.Port
+            );
+
 
         listener.Start();
 
+
         Console.WriteLine("Server started...");
+        Console.WriteLine($"IP: {ServerConfig.IP}");
+        Console.WriteLine($"Port: {ServerConfig.Port}");
         Console.WriteLine("Waiting for client...");
 
 
@@ -24,11 +36,14 @@ class Program
         {
             TcpClient client =
                 await listener.AcceptTcpClientAsync();
-            
+
+
             Console.WriteLine("Client connected");
+
 
             ClientSession session =
                 new ClientSession(client);
+
 
             _ = Task.Run(() => session.RunAsync());
         }
