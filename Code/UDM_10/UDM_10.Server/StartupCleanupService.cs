@@ -21,6 +21,7 @@ public static class StartupCleanupService
 
     public static int CleanupPartialFiles(ServerConfig config)
     {
+         // TODO: if UploadDirectory does not exist, return 0
         // TODO: scan all "*.part" files in UploadDirectory, delete each one,
         // skip locked files instead of stopping, count how many files were deleted
         return 0;
@@ -28,6 +29,7 @@ public static class StartupCleanupService
 
     public static int CleanupEmptyFolders(ServerConfig config)
     {
+       // TODO: if UploadDirectory does not exist, return 0
         // TODO: get all subfolders (AllDirectories), sort by path length descending
         // (delete child folders before parent folders), delete empty ones, count how many were deleted
         return 0;
