@@ -4,9 +4,8 @@ using System.Threading;
 using UDM_10.Shared.Config;
 using UDM_10.Shared.Models;
 using UDM_10.Shared.Protocol;
-
 namespace UDM_10.Server;
-
+// Week 1 skeleton - FileStorageService (logic not implemented yet)
 public class FileStorageService
 {
     private const int MaxFileNameLength = 255;
