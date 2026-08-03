@@ -65,4 +65,58 @@ public class FileStorageService
     }
 
     #endregion
+#region Upload Process
+
+    public async Task<string> ReceiveFileAsync(Stream stream, string targetPath, FileStream partFile, long expectedSize, CancellationToken ct, int idleTimeoutMs = 0)
+    {
+        // TODO: loop reading chunks (header + data) until expectedSize is reached,
+        // write to partFile, then VerifyUpload + CompleteUpload,
+        // catch OperationCanceledException / TimeoutException / Exception -> RollbackUpload then rethrow
+        return await Task.FromResult(string.Empty);
+    }
+
+    private async Task<UploadChunkHeader> ReadChunkHeader(Stream stream, CancellationToken ct, int idleTimeoutMs)
+    {
+        // TODO: read JSON header from stream via MessageFramer, deserialize into UploadChunkHeader
+        return await Task.FromResult<UploadChunkHeader>(null);
+    }
+
+    private async Task<byte[]> ReadChunkData(Stream stream, int chunkLength, CancellationToken ct, int idleTimeoutMs)
+    {
+        // TODO: read raw data from stream via MessageFramer according to chunkLength
+        return await Task.FromResult(Array.Empty<byte>());
+    }
+
+    private async Task WriteChunkToPartFile(FileStream partFile, byte[] buffer, CancellationToken ct)
+    {
+        // TODO: write buffer to partFile
+        await Task.CompletedTask;
+    }
+
+    private void VerifyUpload(long receivedSize, long expectedSize)
+    {
+        // TODO: compare receivedSize with expectedSize, throw InvalidDataException if mismatched
+    }
+
+    private void CompleteUpload(string targetPath)
+    {
+        // TODO: rename the .part file to the actual targetPath (File.Move, overwrite: true)
+    }
+
+    #endregion
+
+    #region Cleanup
+
+    public void RollbackUpload(string targetPath)
+    {
+        // TODO: call DeletePartialFile, log if deletion succeeds
+    }
+
+    public bool DeletePartialFile(string filePath)
+    {
+        // TODO: resolve the .part path, check if it exists, delete if present, catch errors if file is locked
+        return false;
+    }
+
+    #endregion
 }
