@@ -28,13 +28,35 @@
         /// </summary>
         private void InitializeComponent()
         {
+            topPanel = new Panel();
+            btnChooseFiles = new Button();
             dropZone = new Panel();
             dropLabel = new Label();
-            btnChooseFiles = new Button();
             gridFiles = new DataGridView();
+            topPanel.SuspendLayout();
             dropZone.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)gridFiles).BeginInit();
             SuspendLayout();
+            // 
+            // topPanel
+            // 
+            topPanel.Controls.Add(btnChooseFiles);
+            topPanel.Controls.Add(dropZone);
+            topPanel.Dock = DockStyle.Top;
+            topPanel.Location = new Point(0, 0);
+            topPanel.Name = "topPanel";
+            topPanel.Size = new Size(1082, 96);
+            topPanel.TabIndex = 0;
+            // 
+            // btnChooseFiles
+            // 
+            btnChooseFiles.Location = new Point(436, 24);
+            btnChooseFiles.Name = "btnChooseFiles";
+            btnChooseFiles.Size = new Size(130, 32);
+            btnChooseFiles.TabIndex = 1;
+            btnChooseFiles.Text = "Chọn tệp...";
+            btnChooseFiles.UseVisualStyleBackColor = true;
+            btnChooseFiles.Click += btnChooseFiles_Click;
             // 
             // dropZone
             // 
@@ -60,44 +82,33 @@
             dropLabel.Text = "Kéo && thả file vào đây";
             dropLabel.TextAlign = ContentAlignment.MiddleCenter;
             // 
-            // btnChooseFiles
-            // 
-            btnChooseFiles.Location = new Point(436, 24);
-            btnChooseFiles.Name = "btnChooseFiles";
-            btnChooseFiles.Size = new Size(130, 32);
-            btnChooseFiles.TabIndex = 1;
-            btnChooseFiles.Text = "Chọn tệp...";
-            btnChooseFiles.UseVisualStyleBackColor = true;
-            btnChooseFiles.Click += btnChooseFiles_Click;
-            // 
             // gridFiles
             // 
             gridFiles.AllowUserToAddRows = false;
             gridFiles.AllowUserToDeleteRows = false;
             gridFiles.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            gridFiles.Dock = DockStyle.Bottom;
-            gridFiles.Location = new Point(0, 80);
-            gridFiles.MultiSelect = false;
+            gridFiles.Dock = DockStyle.Fill;
+            gridFiles.Location = new Point(0, 96);
             gridFiles.Name = "gridFiles";
             gridFiles.ReadOnly = true;
             gridFiles.RowHeadersVisible = false;
             gridFiles.RowHeadersWidth = 51;
             gridFiles.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            gridFiles.Size = new Size(1082, 593);
-            gridFiles.TabIndex = 2;
+            gridFiles.Size = new Size(1082, 577);
+            gridFiles.TabIndex = 1;
             // 
             // MainForm
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1082, 673);
-            Controls.Add(btnChooseFiles);
-            Controls.Add(dropZone);
             Controls.Add(gridFiles);
+            Controls.Add(topPanel);
             MinimumSize = new Size(900, 560);
             Name = "MainForm";
             StartPosition = FormStartPosition.CenterScreen;
             Text = "UDM_10-MultiFileUpload";
+            topPanel.ResumeLayout(false);
             dropZone.ResumeLayout(false);
             dropZone.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)gridFiles).EndInit();
@@ -106,9 +117,10 @@
 
         #endregion
 
+        private Panel topPanel;
         private Panel dropZone;
-        private Label dropLabel;
         private Button btnChooseFiles;
+        private Label dropLabel;
         private DataGridView gridFiles;
     }
 }

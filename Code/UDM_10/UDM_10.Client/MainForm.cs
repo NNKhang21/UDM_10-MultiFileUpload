@@ -1,7 +1,6 @@
-using Microsoft.VisualBasic.Logging;
-using System.Diagnostics.Eventing.Reader;
 using UDM_10.Client.Models;
 using UDM_10.Client.Services;
+
 namespace UDM_10.Client
 {
     public partial class MainForm : Form
@@ -79,7 +78,7 @@ namespace UDM_10.Client
         {
             if (e.Data?.GetData(DataFormats.FileDrop) is string[] paths)
             {
-                AddFilesToList(paths);
+                BeginInvoke(new Action(() => AddFilesToList(paths)));
             }
         }
     }
