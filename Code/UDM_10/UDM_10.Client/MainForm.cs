@@ -1,25 +1,86 @@
 using Microsoft.VisualBasic.Logging;
 using System.Diagnostics.Eventing.Reader;
-
+using UDM_10.Client.Models;
+using UDM_10.Client.Services;
 namespace UDM_10.Client
 {
     public partial class MainForm : Form
     {
+        private readonly UploadManager _uploadManager = new();
+        private readonly BindingSource _fileBindingSource = new();
+
         public MainForm()
         {
             InitializeComponent();
-            /* Test UploadManager.AddFile() voi cac tinh huong khac nhau
-            var manager = new UDM_10.Client.Services.UploadManager();
-            bool ok1 = manager.AddFile(@"C:\Windows\System32\notepad.exe", out var err1);
-            System.Diagnostics.Debug.WriteLine($"[TEST 1] Add file hop le: ok ={ ok1},loi ={ err1 ?? "(khong co)"}");
-            bool ok2 = manager.AddFile(@"C:\Windows\System32\notepad.exe", out var err2);
-            System.Diagnostics.Debug.WriteLine($"[TEST 2] Add lai file trung: ok={ok2}, loi={err2 ?? "(khong co)"}");
-            bool ok3 = manager.AddFile(@"C:\khong-ton-tai-123.txt", out var err3);
-            System.Diagnostics.Debug.WriteLine($"[TEST 3] Add file khong ton tai: ok={ok3}, loi={err3 ?? "(khong co)"}");
-            bool ok4 = manager.AddFile(@"C:\Windows\System32", out var err4);
-            System.Diagnostics.Debug.WriteLine($"[TEST 4] Add mot thu muc: ok={ok4}, loi={err4 ?? "(khong co)"}");
-            System.Diagnostics.Debug.WriteLine($"[TEST 5] Tong so file trong danh sach: {manager.Files.Count}");
-            -> Ket qua mong doi: 1 file hop le, 1 file trung, 1 file khong ton tai, 1 thu muc => chi co 1 file hop le duoc them vao danh sach*/
+
+            gridFiles.AutoGenerateColumns = false;
+
+            _fileBindingSource.DataSource = _uploadManager.Files;
+            gridFiles.DataSource = _fileBindingSource;
+
+            gridFiles.Columns.Clear();
+            gridFiles.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = nameof(FileUploadItem.FileName),
+                HeaderText = "Tên file",
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
+                FillWeight = 220
+            });
+            gridFiles.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = nameof(FileUploadItem.FileSizeText),
+                HeaderText = "Kích thước",
+                Width = 100
+            });
+            gridFiles.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = nameof(FileUploadItem.Status),
+                HeaderText = "Trạng thái",
+                Width = 120
+            });
+        }
+
+        private void AddFilesToList(IEnumerable<string> paths)
+        {
+            var errors = new List<string>();
+            foreach (var path in paths)
+            {
+                if (!_uploadManager.AddFile(path, out var error))
+                {
+                    errors.Add(error!);
+                }
+            }
+
+            if (errors.Count > 0)
+            {
+                MessageBox.Show(string.Join(Environment.NewLine, errors),
+                    "Một số file không thể thêm", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private void btnChooseFiles_Click(object sender, EventArgs e)
+        {
+            using var dialog = new OpenFileDialog { Multiselect = true, Title = "Chọn file để upload" };
+            if (dialog.ShowDialog() == DialogResult.OK)
+            {
+                AddFilesToList(dialog.FileNames);
+            }
+        }
+
+        private void dropZone_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data != null && e.Data.GetDataPresent(DataFormats.FileDrop))
+                e.Effect = DragDropEffects.Copy;
+            else
+                e.Effect = DragDropEffects.None;
+        }
+
+        private void dropZone_DragDrop(object sender, DragEventArgs e)
+        {
+            if (e.Data?.GetData(DataFormats.FileDrop) is string[] paths)
+            {
+                AddFilesToList(paths);
+            }
         }
     }
 }
