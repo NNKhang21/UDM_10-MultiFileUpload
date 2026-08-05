@@ -20,6 +20,8 @@ Tài liệu này dùng để kiểm tra các yêu cầu của giao diện (GUI) 
 | 12 | IP/Port cấu hình được, không hard-code | GUI phải có ô nhập **IP** và **Port** trước khi Connect; không được gán cứng trong source code. Có thể đổi IP/Port và kết nối lại thành công. |
 
 ---
+- [ ] Kéo-thả file+thư mục cùng lúc: chưa xác nhận MessageBox báo lỗi thư mục có
+      hiện đúng không (test bị nhiễu do thao tác tay, cần debug lại kỹ hơn sau)
 
 ## Ghi chú
 
