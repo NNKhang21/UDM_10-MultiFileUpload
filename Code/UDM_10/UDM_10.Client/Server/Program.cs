@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -37,6 +38,12 @@ class Program
     {
         ServerConfig.Load();
 
+        // Kiểm tra Port hợp lệ
+        if (ServerConfig.Port <= 0 || ServerConfig.Port > 65535)
+        {
+            throw new Exception("Invalid server port.");
+        }
+
         IPAddress ip;
 
         if (!IPAddress.TryParse(ServerConfig.IP, out ip))
@@ -45,6 +52,12 @@ class Program
         }
 
         _listener = new TcpListener(ip, ServerConfig.Port);
+
+        // Cho phép mở lại server ngay sau khi tắt
+        _listener.Server.SetSocketOption(
+            SocketOptionLevel.Socket,
+            SocketOptionName.ReuseAddress,
+            true);
 
         _listener.Start();
 
@@ -64,8 +77,12 @@ class Program
             {
                 client = await _listener.AcceptTcpClientAsync();
 
+                // Timeout
+                client.ReceiveTimeout = 30000;
+                client.SendTimeout = 30000;
+
                 Console.WriteLine("---------------------------------");
-                Console.WriteLine($"Client connected");
+                Console.WriteLine("Client connected");
                 Console.WriteLine($"Remote : {client.Client.RemoteEndPoint}");
                 Console.WriteLine($"Time   : {DateTime.Now}");
                 Console.WriteLine("---------------------------------");
@@ -78,15 +95,40 @@ class Program
                     {
                         await session.RunAsync();
                     }
+                    catch (SocketException)
+                    {
+                        Console.WriteLine($"Client disconnected: {client.Client.RemoteEndPoint}");
+                    }
+                    catch (IOException)
+                    {
+                        Console.WriteLine($"Connection lost: {client.Client.RemoteEndPoint}");
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        Console.WriteLine($"Connection closed: {client.Client.RemoteEndPoint}");
+                    }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Session Error : {ex.Message}");
+                        Console.WriteLine($"Session Error: {ex.Message}");
+                    }
+                    finally
+                    {
+                        try
+                        {
+                            client.Close();
+                            client.Dispose();
+                        }
+                        catch
+                        {
+                        }
+
+                        Console.WriteLine($"Client released: {DateTime.Now}");
                     }
                 });
             }
             catch (SocketException ex)
             {
-                Console.WriteLine($"Socket Error : {ex.Message}");
+                Console.WriteLine($"Socket Error: {ex.Message}");
             }
             catch (ObjectDisposedException)
             {
@@ -112,6 +154,11 @@ class Program
         try
         {
             _listener?.Stop();
+
+            Console.WriteLine("=================================");
+            Console.WriteLine(" Server Shutdown");
+            Console.WriteLine($"Time : {DateTime.Now}");
+            Console.WriteLine("=================================");
         }
         catch
         {
