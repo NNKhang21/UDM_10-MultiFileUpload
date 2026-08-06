@@ -33,7 +33,7 @@ namespace UDM_10.Client
             });
             gridFiles.Columns.Add(new DataGridViewTextBoxColumn
             {
-                DataPropertyName = nameof(FileUploadItem.Status),
+                DataPropertyName = nameof(FileUploadItem.StatusLabel),
                 HeaderText = "Trạng thái",
                 Width = 120
             });
@@ -80,6 +80,44 @@ namespace UDM_10.Client
             {
                 BeginInvoke(new Action(() => AddFilesToList(paths)));
             }
+        }
+
+        private void btnTestStatus_Click(object sender, EventArgs e)
+        {
+            if (_uploadManager.Files.Count == 0)
+            {
+                MessageBox.Show("Chưa có file nào trong danh sách. Kéo-thả hoặc Chọn tệp trước.");
+                return;
+            }
+
+            var item = _uploadManager.Files[0];
+
+            item.Status = item.Status switch
+            {
+                UploadStatus.Waiting => UploadStatus.Uploading,
+                UploadStatus.Uploading => UploadStatus.Completed,
+                UploadStatus.Completed => UploadStatus.Failed,
+                UploadStatus.Failed => UploadStatus.Cancelled,
+                UploadStatus.Cancelled => UploadStatus.Waiting,
+                _ => UploadStatus.Waiting
+            };
+        }
+
+        private void gridFiles_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        {
+            if (gridFiles.Columns[e.ColumnIndex].DataPropertyName != nameof(FileUploadItem.StatusLabel)) return;
+
+            if (gridFiles.Rows[e.RowIndex].DataBoundItem is not FileUploadItem item) return;
+
+            e.CellStyle!.BackColor = item.Status switch
+            {
+                UploadStatus.Waiting => Color.LightYellow,
+                UploadStatus.Uploading => Color.LightBlue,
+                UploadStatus.Completed => Color.LightGreen,
+                UploadStatus.Failed => Color.LightCoral,
+                UploadStatus.Cancelled => Color.LightGray,
+                _ => Color.White
+            };
         }
     }
 }

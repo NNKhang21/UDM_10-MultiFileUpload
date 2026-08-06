@@ -29,6 +29,7 @@
         private void InitializeComponent()
         {
             topPanel = new Panel();
+            btnTestStatus = new Button();
             btnChooseFiles = new Button();
             dropZone = new Panel();
             dropLabel = new Label();
@@ -40,6 +41,7 @@
             // 
             // topPanel
             // 
+            topPanel.Controls.Add(btnTestStatus);
             topPanel.Controls.Add(btnChooseFiles);
             topPanel.Controls.Add(dropZone);
             topPanel.Dock = DockStyle.Top;
@@ -47,6 +49,16 @@
             topPanel.Name = "topPanel";
             topPanel.Size = new Size(1082, 96);
             topPanel.TabIndex = 0;
+            // 
+            // btnTestStatus
+            // 
+            btnTestStatus.Location = new Point(590, 27);
+            btnTestStatus.Name = "btnTestStatus";
+            btnTestStatus.Size = new Size(143, 32);
+            btnTestStatus.TabIndex = 2;
+            btnTestStatus.Text = "Test đổi trạng thái";
+            btnTestStatus.UseVisualStyleBackColor = true;
+            btnTestStatus.Click += btnTestStatus_Click;
             // 
             // btnChooseFiles
             // 
@@ -96,6 +108,7 @@
             gridFiles.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             gridFiles.Size = new Size(1082, 577);
             gridFiles.TabIndex = 1;
+            gridFiles.CellFormatting += gridFiles_CellFormatting;
             // 
             // MainForm
             // 
@@ -122,5 +135,6 @@
         private Button btnChooseFiles;
         private Label dropLabel;
         private DataGridView gridFiles;
+        private Button btnTestStatus;
     }
 }

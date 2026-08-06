@@ -17,8 +17,20 @@ public class FileUploadItem : INotifyPropertyChanged
     public string FileSizeText => FormatBytes(FileSizeBytes);
 
     private UploadStatus _status = UploadStatus.Waiting;
-    public UploadStatus Status { get => _status; set { _status = value; OnChanged(); } }
-
+    public UploadStatus Status { 
+        get => _status; 
+        set { _status = value; OnChanged(); } 
+    }
+    // Hien tieng Viet cho cot "Trang thai" tren DataGridView
+    public string StatusLabel => Status switch
+    {
+        UploadStatus.Waiting => "Đang chờ",
+        UploadStatus.Uploading => "Đang tải lên",
+        UploadStatus.Completed => "Hoàn thành",
+        UploadStatus.Failed => "Lỗi",
+        UploadStatus.Cancelled => "Đã hủy",
+        _ => Status.ToString()
+    };
     private double _progressPercent;
     public double ProgressPercent { get => _progressPercent; set { _progressPercent = value; OnChanged(); } }
 
