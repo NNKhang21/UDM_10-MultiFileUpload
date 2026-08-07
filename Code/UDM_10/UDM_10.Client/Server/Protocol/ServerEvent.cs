@@ -1,4 +1,4 @@
-﻿namespace UDM_10.Client.Server.Protocol
+﻿namespace UDM_10.Client.Protocol
 {
     public enum ServerEvent
     {

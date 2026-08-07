@@ -1,7 +1,8 @@
 ﻿using System;
 using System.IO;
 
-namespace UDM_10.Client.Server
+namespace UDM_10.Client.Logging
+
 {
     public static class Logger
     {
