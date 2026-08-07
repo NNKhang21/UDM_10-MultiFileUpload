@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Models\" />
+    <Folder Include="Services\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- NOTE (fix): trước đây dùng gói NuGet Microsoft.Extensions.Configuration.*
+         để đọc appsettings.json. AppConfig.cs (Shared) giờ tự parse JSON bằng
+         System.Text.Json (có sẵn trong .NET) nên không cần NuGet nữa -> tránh lỗi
+         nếu máy build không có mạng / NuGet bị chặn. -->
+    <ProjectReference Include="..\UDM_10.Shared\UDM_10.Shared.csproj" />
+  </ItemGroup>
+
+</Project>
