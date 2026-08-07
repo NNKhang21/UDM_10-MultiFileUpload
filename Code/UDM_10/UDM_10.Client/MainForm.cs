@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using UDM_10.Client.Models;
 using UDM_10.Client.Services;
 
@@ -5,7 +6,7 @@ namespace UDM_10.Client
 {
     public partial class MainForm : Form
     {
-        private readonly UploadManager _uploadManager = new();
+        private readonly UploadManager _uploadManager = new(new FakeUploader());
         private readonly BindingSource _fileBindingSource = new();
 
         public MainForm()
@@ -37,6 +38,13 @@ namespace UDM_10.Client
                 HeaderText = "Trạng thái",
                 Width = 120
             });
+            _uploadManager.Files.ListChanged += (s, e) =>
+            {
+                if (e.ListChangedType == ListChangedType.ItemAdded)
+                {
+                    _uploadManager.Files[e.NewIndex].PropertyChanged += (s2, e2) => gridFiles.Invalidate();
+                }
+            };
         }
 
         private void AddFilesToList(IEnumerable<string> paths)
@@ -118,6 +126,13 @@ namespace UDM_10.Client
                 UploadStatus.Cancelled => Color.LightGray,
                 _ => Color.White
             };
+        }
+
+        private async void btnUploadAll_Click(object sender, EventArgs e)
+        {
+            btnUploadAll.Enabled = false;
+            await _uploadManager.UploadInBatchesAsync();
+            btnUploadAll.Enabled = true;
         }
     }
 }

@@ -3,9 +3,15 @@ using UDM_10.Client.Models;
 
 namespace UDM_10.Client.Services;
 
+public interface IFileUploader
+{
+    Task<bool> UploadFileAsync(string filePath, IProgress<double> progress, CancellationToken ct);
+}
 public class UploadManager
 {
     public BindingList<FileUploadItem> Files { get; } = new();
+
+    private readonly IFileUploader _uploader;
 
     // TODO: doc tu appsettings.json khi Cam Tien hoan thien ClientConfig - tam hard-code
     private const int MaxFiles = 20;
@@ -14,7 +20,10 @@ public class UploadManager
     // TODO: UploadInBatchesAsync() - dieu phoi upload nhieu file dong thoi
     // TODO: CancelUpload(FileUploadItem item)
     // TODO: ResetForRetry da nam san trong FileUploadItem, chi can goi lai o day
-
+    public UploadManager(IFileUploader uploader)
+    {
+        _uploader = uploader;
+    }
     public bool AddFile(string path, out string? error)
     {
         if (Files.Count >= MaxFiles)
@@ -68,5 +77,25 @@ public class UploadManager
         });
         error = null;
         return true;
+    }
+
+    public async Task UploadInBatchesAsync()
+    {
+        var pending = Files.Where(f => f.Status == UploadStatus.Waiting).ToList();
+        foreach (var item in pending)
+        {
+            item.Status = UploadStatus.Uploading;
+            var progress = new Progress<double>(p => item.ProgressPercent = p);
+            try
+            {
+                bool ok = await _uploader.UploadFileAsync(item.FilePath, progress, CancellationToken.None);
+                item.Status = ok ? UploadStatus.Completed : UploadStatus.Failed;
+            }
+            catch (Exception ex)
+            {
+                item.Status = UploadStatus.Failed;
+                item.ErrorMessage = ex.Message;
+            }
+        }
     }
 }

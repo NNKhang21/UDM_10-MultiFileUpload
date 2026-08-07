@@ -29,6 +29,7 @@
         private void InitializeComponent()
         {
             topPanel = new Panel();
+            btnUploadAll = new Button();
             btnTestStatus = new Button();
             btnChooseFiles = new Button();
             dropZone = new Panel();
@@ -41,6 +42,7 @@
             // 
             // topPanel
             // 
+            topPanel.Controls.Add(btnUploadAll);
             topPanel.Controls.Add(btnTestStatus);
             topPanel.Controls.Add(btnChooseFiles);
             topPanel.Controls.Add(dropZone);
@@ -49,6 +51,16 @@
             topPanel.Name = "topPanel";
             topPanel.Size = new Size(1082, 96);
             topPanel.TabIndex = 0;
+            // 
+            // btnUploadAll
+            // 
+            btnUploadAll.Location = new Point(784, 35);
+            btnUploadAll.Name = "btnUploadAll";
+            btnUploadAll.Size = new Size(127, 29);
+            btnUploadAll.TabIndex = 3;
+            btnUploadAll.Text = "Upload tất cả";
+            btnUploadAll.UseVisualStyleBackColor = true;
+            btnUploadAll.Click += btnUploadAll_Click;
             // 
             // btnTestStatus
             // 
@@ -136,5 +148,6 @@
         private Label dropLabel;
         private DataGridView gridFiles;
         private Button btnTestStatus;
+        private Button btnUploadAll;
     }
 }
