@@ -1,138 +1,149 @@
 using System;
+using System.IO;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 
-class ClientSession
+namespace UDM_10.Server
 {
-    private readonly TcpClient _client;
-    private readonly NetworkStream _stream;
-
-    public ClientSession(TcpClient client)
+    public class ClientSession
     {
-        _client = client;
-        _stream = client.GetStream();
-    }
+        private readonly TcpClient _client;
+        private readonly NetworkStream _stream;
+        private readonly FileStorageService _storage;
 
-    public async Task RunAsync()
-    {
-        Console.WriteLine("Client session started.");
-
-        try
+        public ClientSession(TcpClient client)
         {
-            while (_client.Connected)
+            _client = client;
+            _stream = client.GetStream();
+            _storage = new FileStorageService();
+        }
+
+        public async Task RunAsync(CancellationToken token)
+        {
+            Console.WriteLine($"[Client Connected] {_client.Client.RemoteEndPoint}");
+
+            try
             {
-                // TODO:
-                // Sau này thay bằng:
-                // MessageBase message = await MessageFramer.ReadAsync(_stream);
-
-                object? message = await ReceiveMessageAsync();
-
-                if (message == null)
+                while (_client.Connected && !token.IsCancellationRequested)
                 {
-                    Console.WriteLine("Client disconnected.");
-                    break;
-                }
+                    // Đọc message từ client
+                    MessageBase? message = await MessageFramer.ReadAsync(_stream, token);
 
-                await HandleMessageAsync(message);
+                    if (message == null)
+                    {
+                        Console.WriteLine("[ClientSession] Client disconnected.");
+                        break;
+                    }
+
+                    await HandleMessageAsync(message, token);
+                }
+            }
+            catch (IOException ex)
+            {
+                Console.WriteLine($"[IO Error] {ex.Message}");
+            }
+            catch (SocketException ex)
+            {
+                Console.WriteLine($"[Socket Error] {ex.Message}");
+            }
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine("[ClientSession] Session cancelled.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Unexpected Error] {ex.Message}");
+            }
+            finally
+            {
+                Stop();
             }
         }
-        catch (IOException ex)
+
+        private async Task HandleMessageAsync(MessageBase message, CancellationToken token)
         {
-            Console.WriteLine($"Client disconnected: {ex.Message}");
+            switch (message)
+            {
+                case UploadStartMessage start:
+
+                    Console.WriteLine($"Upload started: {start.FileName}");
+
+                    await _storage.BeginUploadAsync(start);
+
+                    await SendAckAsync(MessageType.UploadStartAck, token);
+
+                    break;
+
+                case UploadChunkMessage chunk:
+
+                    Console.WriteLine($"Chunk #{chunk.ChunkIndex}");
+
+                    await _storage.WriteChunkAsync(chunk);
+
+                    await SendAckAsync(MessageType.UploadChunkAck, token);
+
+                    break;
+
+                case UploadDoneMessage done:
+
+                    Console.WriteLine($"Upload completed: {done.FileName}");
+
+                    bool success = await _storage.FinishUploadAsync(done);
+
+                    await SendResultAsync(success, token);
+
+                    break;
+
+                default:
+
+                    Console.WriteLine($"Unknown message: {message.GetType().Name}");
+
+                    break;
+            }
         }
-        catch (SocketException ex)
+
+        private async Task SendAckAsync(MessageType ackType, CancellationToken token)
         {
-            Console.WriteLine($"Socket error: {ex.Message}");
+            var ack = new AckMessage
+            {
+                Type = ackType,
+                Timestamp = DateTime.UtcNow
+            };
+
+            await MessageFramer.WriteAsync(_stream, ack, token);
+
+            Console.WriteLine($"ACK -> {ackType}");
         }
-        catch (Exception ex)
+
+        private async Task SendResultAsync(bool success, CancellationToken token)
         {
-            Console.WriteLine($"Client error: {ex.Message}");
+            var result = new UploadResultMessage
+            {
+                IsSuccess = success,
+                Message = success
+                    ? "Upload completed successfully."
+                    : "Upload failed."
+            };
+
+            await MessageFramer.WriteAsync(_stream, result, token);
+
+            Console.WriteLine($"RESULT -> {success}");
         }
-        finally
+
+        public void Stop()
         {
-            _stream.Close();
-            _client.Close();
+            try
+            {
+                _stream?.Close();
+                _client?.Close();
 
-            Console.WriteLine("Client session ended.");
+                Console.WriteLine("[ClientSession] Connection closed.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Close Error: {ex.Message}");
+            }
         }
-    }
-
-    /// <summary>
-    /// Xử lý toàn bộ chuỗi UploadStart → Ack → Chunk → Done → Result
-    /// </summary>
-    private async Task HandleMessageAsync(object message)
-    {
-        switch (message)
-        {
-            case UploadStartMessage start:
-
-                Console.WriteLine($"UploadStart: {start.FileName}");
-
-                // TODO:
-                // _storage.BeginUpload(start);
-
-                await SendAckAsync();
-
-                break;
-
-            case UploadChunkMessage chunk:
-
-                Console.WriteLine($"Chunk: {chunk.ChunkIndex}");
-
-                // TODO:
-                // HandleUploadAsync(chunk);
-
-                await SendAckAsync();
-
-                break;
-
-            case UploadDoneMessage done:
-
-                Console.WriteLine("Upload Done");
-
-                // TODO:
-                // _storage.FinishUpload(done);
-
-                await SendResultAsync();
-
-                break;
-
-            default:
-
-                Console.WriteLine("Unknown message.");
-
-                break;
-        }
-    }
-
-    // ==========================
-    // Placeholder
-    // ==========================
-
-    private async Task<object?> ReceiveMessageAsync()
-    {
-        // TODO:
-        // Sau này thay bằng MessageFramer.ReadAsync()
-        await Task.Delay(10);
-
-        return null;
-    }
-
-    private async Task SendAckAsync()
-    {
-        // TODO:
-        // Gửi Ack về Client
-        Console.WriteLine("ACK sent.");
-
-        await Task.CompletedTask;
-    }
-
-    private async Task SendResultAsync()
-    {
-        // TODO:
-        // Gửi Result về Client
-        Console.WriteLine("RESULT sent.");
-
-        await Task.CompletedTask;
     }
 }
