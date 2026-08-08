@@ -3,12 +3,12 @@ Checklist này dùng để kiểm tra các yêu cầu bắt buộc của phần 
 
 ## 1. Validate đầu vào trước khi nhận file
 
-| # | Yêu cầu | Ý nghĩa |
-|---|---|---|
-| 1 | Chặn tên file rỗng/khoảng trắng | Không tạo file nếu Client gửi tên rỗng hoặc toàn khoảng trắng |
-| 2 | Chặn path traversal | Không cho tên chứa `..` hoặc là đường dẫn tuyệt đối, tránh ghi ra ngoài thư mục upload |
-| 3 | Chặn ký tự không hợp lệ trong tên file | Từ chối tên chứa ký tự hệ điều hành không cho phép |
-| 4 | Giới hạn dung lượng file | File vượt quá dung lượng tối đa cho phép phải bị từ chối |
+| # | Yêu cầu | Ý nghĩa | Trạng thái |
+|---|---|---|---|
+| 1 | Chặn tên file rỗng/khoảng trắng | Không tạo file nếu Client gửi tên rỗng hoặc toàn khoảng trắng | Đã làm |
+| 2 | Chặn path traversal | Không cho tên chứa `..` hoặc là đường dẫn tuyệt đối, tránh ghi ra ngoài thư mục upload | Đã làm |
+| 3 | Chặn ký tự không hợp lệ trong tên file | Từ chối tên chứa ký tự hệ điều hành không cho phép | Đã làm |
+| 4 | Giới hạn dung lượng file | File vượt quá dung lượng tối đa cho phép phải bị từ chối | Chưa làm |
 
 ## 2. Xử lý trùng tên & tranh chấp khi upload đồng thời
 
