@@ -86,12 +86,23 @@ private static readonly string[] _windowsReservedNames =
 
     #region Upload Preparation
 
-    public string GetUploadPath(string fileName)
-    {
-        // TODO: combine UploadDirectory + fileName, check for name conflicts (including .part files),
+ 
+        // TODO: ccheck for name conflicts (including .part files),
         // handle according to DuplicatePolicy: Reject / Overwrite / Rename
-        return string.Empty;
+        public string GetUploadPath(string fileName)
+     {
+    var targetPath = Path.Combine(_config.UploadDirectory, fileName);
+
+    if (File.Exists(targetPath))
+    {
+        Logger.Warn(ServerEvent.ValidationFailed, "File already exists", ("fileName", fileName));
+        throw new IOException($"File already exists: {fileName}");
     }
+
+    return targetPath;
+   }
+ 
+    
 
     public async Task<(string TargetPath, FileStream PartFile)> PrepareUploadAsync(string fileName, CancellationToken ct = default)
     {
