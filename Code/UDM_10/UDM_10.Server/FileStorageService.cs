@@ -29,9 +29,33 @@ private static readonly string[] _windowsReservedNames =
 
     #region Validation
 
-    public void ValidateFileName(string fileName)
+     public void ValidateFileName(string fileName)
     {
-        // TODO: check empty, too long, invalid characters, path traversal, reserved name
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            Logger.Warn(ServerEvent.ValidationFailed, "Empty filename", ("fileName", fileName ?? ""));
+            throw new ArgumentException("Empty filename");
+        }
+
+        if (fileName.Length > MaxFileNameLength)
+        {
+            Logger.Warn(ServerEvent.ValidationFailed, "Filename too long",
+                ("fileName", fileName), ("length", fileName.Length));
+            throw new ArgumentException("Filename too long");
+        }
+
+        if (fileName.Contains("..") || Path.IsPathRooted(fileName))
+        {
+            Logger.Warn(ServerEvent.ValidationFailed, "Invalid filename (path traversal)", ("fileName", fileName));
+            throw new ArgumentException("Invalid filename (path traversal)");
+        }
+
+        if (fileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+        {
+            Logger.Warn(ServerEvent.ValidationFailed, "Invalid characters in filename", ("fileName", fileName));
+            throw new ArgumentException("Invalid characters in filename");
+        }
+
     }
 
     public void ValidateFileSize(long fileSize)
