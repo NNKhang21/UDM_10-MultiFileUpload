@@ -56,6 +56,15 @@ private static readonly string[] _windowsReservedNames =
             throw new ArgumentException("Invalid characters in filename");
         }
 
+  var nameOnly = Path.GetFileNameWithoutExtension(fileName).ToUpperInvariant();
+        for (int i = 0; i < _windowsReservedNames.Length; i++)
+        {
+            if (nameOnly == _windowsReservedNames[i])
+            {
+                Logger.Warn(ServerEvent.ValidationFailed, "Reserved filename", ("fileName", fileName));
+                throw new ArgumentException("Reserved filename");
+            }
+        }
     }
 
     public void ValidateFileSize(long fileSize)
