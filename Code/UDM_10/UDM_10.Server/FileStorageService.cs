@@ -12,9 +12,11 @@ public class FileStorageService
 {
     private const int MaxFileNameLength = 255;
 
-    // TODO: list Windows reserved file names (CON, PRN, AUX, NUL, COM1-9, LPT1-9)
-    private static readonly string[] _windowsReservedNames = { };
-
+private static readonly string[] _windowsReservedNames =
+{
+    "CON","PRN","AUX","NUL",  "COM1",  "COM2","COM3","COM4", "COM5","COM6", "COM7", "COM8",
+    "COM9", "LPT1",  "LPT2",  "LPT3", "LPT4",  "LPT5",  "LPT6", "LPT7", "LPT8", "LPT9"
+};
     private static readonly SemaphoreSlim _nameLock = new(1, 1);
 
     private readonly ServerConfig _config;
