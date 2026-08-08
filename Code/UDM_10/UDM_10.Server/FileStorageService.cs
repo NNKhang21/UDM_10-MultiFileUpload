@@ -89,7 +89,7 @@ private static readonly string[] _windowsReservedNames =
  
         // TODO: ccheck for name conflicts (including .part files),
         // handle according to DuplicatePolicy: Reject / Overwrite / Rename
-        public string GetUploadPath(string fileName)
+        public string ResolveFinalPath(string fileName)
      {
     var targetPath = Path.Combine(_config.UploadDirectory, fileName);
 
