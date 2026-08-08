@@ -67,11 +67,16 @@ private static readonly string[] _windowsReservedNames =
         }
     }
 
-    public void ValidateFileSize(long fileSize)
+     public void ValidateFileSize(long fileSize)
     {
-        // TODO: check fileSize <= 0 or exceeds config's MaxFileSizeMb
+        long maxBytes = (long)_config.MaxFileSizeMb * 1024 * 1024;
+        if (fileSize <= 0 || fileSize > maxBytes)
+        {
+            Logger.Warn(ServerEvent.ValidationFailed, "Invalid file size",
+                ("fileSize", fileSize), ("maxBytes", maxBytes));
+            throw new ArgumentException($"Size {fileSize} exceeds limit {maxBytes}");
+        }
     }
-
     public void ValidateChunkLength(long declaredLength, long remainingBytes)
     {
         // TODO: check declaredLength <= 0 or greater than remainingBytes
