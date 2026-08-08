@@ -25,7 +25,7 @@ Checklist này dùng để kiểm tra các yêu cầu bắt buộc của phần 
 | 8 | Chặn Client khai sai kích thước từng phần dữ liệu | Tránh Server bị ép cấp phát bộ nhớ dư thừa | Chưa làm |
 | 9 | Dọn dữ liệu dở dang khi mất kết nối giữa chừng | File chưa truyền xong không được để sót lại trên Server | Chưa làm |
 | 10 | Có thời gian chờ tối đa | Client không gửi gì trong thời gian dài phải bị chủ động ngắt, không treo Server | Chưa làm |
-| 11 | Ghi log khi từ chối 1 file | Lưu lại lý do để phục vụ đối chiếu khi kiểm thử | Chưa làm |
+| 11 | Ghi log khi từ chối 1 file | Lưu lại lý do để phục vụ đối chiếu khi kiểm thử | Một phần -đã log ở ValidateFileName/ValidateFileSize/ResolveFinalPat; log lúc nhận file (ReceiveFileAsync): Tuần 3/4 |
 | 12 | Chặn tên thiết bị dành riêng của Windows | CON, PRN, AUX, NUL, COM1-9, LPT1-9 đều không nằm trong danh sách ký tự cấm nhưng vẫn bị hệ điều hành từ chối | Đã làm |
 ## Ghi chú
 - Đây là checklist dùng để kiểm tra phần Storage & Validate trước khi nghiệm thu
