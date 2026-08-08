@@ -74,7 +74,7 @@ private static readonly string[] _windowsReservedNames =
         {
             Logger.Warn(ServerEvent.ValidationFailed, "Invalid file size",
                 ("fileSize", fileSize), ("maxBytes", maxBytes));
-            throw new ArgumentException($"Size {fileSize} exceeds limit {maxBytes}");
+            throw new ArgumentException($"Size {fileSize} exceeds limit {maxBytes} bytes");
         }
     }
     public void ValidateChunkLength(long declaredLength, long remainingBytes)
