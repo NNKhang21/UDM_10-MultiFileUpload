@@ -32,10 +32,16 @@ public class FileUploadItem : INotifyPropertyChanged
         _ => Status.ToString()
     };
     private double _progressPercent;
-    public double ProgressPercent { get => _progressPercent; set { _progressPercent = value; OnChanged(); } }
+    public double ProgressPercent { 
+        get => _progressPercent; 
+        set { _progressPercent = value; OnChanged(); OnChanged(nameof(ProgressPercentText)); } 
+    }
 
     private long _sentBytes;
-    public long SentBytes { get => _sentBytes; set { _sentBytes = value; OnChanged(); OnChanged(nameof(ProgressText)); } }
+    public long SentBytes {
+        get => _sentBytes; 
+        set { _sentBytes = value; OnChanged(); OnChanged(nameof(ProgressText)); } 
+    }
 
     // Hien "14.2 MB / 20 MB" o duoi progress bar
     public string ProgressText => $"{FormatBytes(SentBytes)} / {FormatBytes(FileSizeBytes)}";
@@ -45,6 +51,10 @@ public class FileUploadItem : INotifyPropertyChanged
 
     private string? _errorMessage;
     public string? ErrorMessage { get => _errorMessage; set { _errorMessage = value; OnChanged(); } }
+
+    public string ProgressPercentText => Status == UploadStatus.Uploading || Status == UploadStatus.Completed
+    ? $"{ProgressPercent:0}%"
+    : "";
 
     // Dung cho Retry: dua file ve trang thai ban dau truoc khi day lai vao hang doi
     public void ResetForRetry()
