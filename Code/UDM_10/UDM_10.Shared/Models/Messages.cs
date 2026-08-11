@@ -2,11 +2,7 @@ using UDM_10.Shared.Protocol;
 
 namespace UDM_10.Shared.Models
 {
-    // NOTE (fix): file này trước đó trống 0 byte. Bản tối thiểu dưới đây đủ để
-    // ClientSession.cs (Trần Hữu Nam) build và chạy được luồng
-    // UploadStart -> Ack -> Chunk -> Ack -> Done -> Result.
-    // Nga (Protocol) nên rà lại field theo đúng thiết kế cuối cùng của nhóm.
-
+  
     public abstract class MessageBase
     {
         public MessageType Type { get; set; }
