@@ -8,8 +8,7 @@ using UDM_10.Shared.Protocol;
 
 namespace UDM_10.Server
 {
-    // NOTE (fix): thiếu "using UDM_10.Shared.Models;" và "using UDM_10.Shared.Protocol;"
-    // -> MessageBase/MessageFramer/MessageType/các message class không resolve được.
+    
     public class ClientSession
     {
         private readonly TcpClient _client;
