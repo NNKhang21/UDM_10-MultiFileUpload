@@ -38,6 +38,24 @@ namespace UDM_10.Client
                 HeaderText = "Trạng thái",
                 Width = 120
             });
+            gridFiles.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = nameof(FileUploadItem.ProgressPercentText),
+                HeaderText = "Tiến độ (%)",
+                Width = 90
+            });
+            gridFiles.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = nameof(FileUploadItem.ProgressText),
+                HeaderText = "Đã gửi",
+                Width = 140
+            });
+            gridFiles.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = nameof(FileUploadItem.SpeedText),
+                HeaderText = "Tốc độ",
+                Width = 90
+            });
             _uploadManager.Files.ListChanged += (s, e) =>
             {
                 if (e.ListChangedType == ListChangedType.ItemAdded)
