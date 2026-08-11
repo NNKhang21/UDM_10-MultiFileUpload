@@ -1,5 +1,4 @@
 # UDM_10-Upload-nhiều-file
-# UDM_10 — Upload nhiều file
 
 ## Thông tin đề tài
 - **Mã đề tài:** UDM_10
