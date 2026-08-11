@@ -4,10 +4,7 @@ using UDM_10.Shared.Config;
 
 namespace UDM_10.Server
 {
-    // NOTE (fix): trước đây các hàm nhận "ServerConfig config" làm tham số, nhưng
-    // ServerConfig là static class (không thể truyền làm instance) -> đã đổi các hàm
-    // sang dùng thẳng ServerConfig.* (static), bỏ tham số. Cũng gỡ "using UDM_10.Shared.Protocol"
-    // vì file này không dùng gì tới Protocol.
+    
     public static class StartupCleanupService
     {
         #region Validation
