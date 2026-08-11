@@ -8,7 +8,6 @@ using UDM_10.Shared.Config;
 
 namespace UDM_10.Server
 {
-    
     class Program
     {
         private static TcpListener? _listener;
