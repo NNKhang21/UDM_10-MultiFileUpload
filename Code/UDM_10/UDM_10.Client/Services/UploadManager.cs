@@ -16,7 +16,8 @@ public class UploadManager
     // TODO: doc tu appsettings.json khi Cam Tien hoan thien ClientConfig - tam hard-code
     private const int MaxFiles = 20;
     private const int MaxFileSizeMb = 100;
-
+    private const int MaxConcurrentUploads = 3; // TODO: doc tu config khi Cam Tien bo sung field nay
+    private readonly SemaphoreSlim _uploadSemaphore = new(MaxConcurrentUploads, MaxConcurrentUploads);
     // TODO: UploadInBatchesAsync() - dieu phoi upload nhieu file dong thoi
     // TODO: CancelUpload(FileUploadItem item)
     // TODO: ResetForRetry da nam san trong FileUploadItem, chi can goi lai o day
@@ -82,7 +83,15 @@ public class UploadManager
     public async Task UploadInBatchesAsync()
     {
         var pending = Files.Where(f => f.Status == UploadStatus.Waiting).ToList();
-        foreach (var item in pending)
+
+        var tasks = pending.Select(item => UploadOneFileAsync(item)).ToList();
+        await Task.WhenAll(tasks);
+    }
+
+    private async Task UploadOneFileAsync(FileUploadItem item)
+    {
+        await _uploadSemaphore.WaitAsync();
+        try
         {
             item.Status = UploadStatus.Uploading;
             var progress = new Progress<double>(p => item.ProgressPercent = p);
@@ -96,6 +105,10 @@ public class UploadManager
                 item.Status = UploadStatus.Failed;
                 item.ErrorMessage = ex.Message;
             }
+        }
+        finally
+        {
+            _uploadSemaphore.Release();
         }
     }
 }
