@@ -9,8 +9,7 @@ namespace UDM_10.Shared.Config
         public static int Port { get; private set; }
         public static int Timeout { get; private set; }
 
-        // NOTE (fix): FileStorageService/StartupCleanupService (Trần Tiến) cần 2 field này,
-        // trước đây ServerConfig chưa có -> đã bổ sung + đọc từ appsettings.json.
+       
         public static string UploadDirectory { get; private set; } = "uploads";
         public static long MaxFileSizeMb { get; private set; } = 500;
 
