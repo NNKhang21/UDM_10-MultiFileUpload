@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading;        // Thêm thư viện này
 using System.Threading.Tasks;
 
-namespace UDM_10.Client.services
+namespace UDM_10.Client.Services
 {
     public class NetworkClient
     {
