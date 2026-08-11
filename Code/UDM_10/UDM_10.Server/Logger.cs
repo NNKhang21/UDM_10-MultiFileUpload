@@ -3,8 +3,7 @@ using System.IO;
 
 namespace UDM_10.Server
 {
-    // NOTE (fix): namespace trước là UDM_10.Client.Server -> không khớp với các file
-    // khác trong Server (UDM_10.Server) -> đã sửa lại cho thống nhất.
+    
     public static class Logger
     {
         private static readonly string LogFolder = "logs";
