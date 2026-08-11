@@ -8,13 +8,7 @@ using UDM_10.Shared.Config;
 
 namespace UDM_10.Server
 {
-    // NOTE (fix): trước đây file này KHÔNG có namespace, và "using UDM_10.Client.Server"
-    // trỏ sai chỗ -> không thấy ClientSession (namespace UDM_10.Server). Đã thêm
-    // namespace UDM_10.Server để khớp với ClientSession.cs, FileStorageService.cs, Logger.cs.
-    // Đồng thời: trước đây file này và UDM_10.Client/Program.cs cùng có Main() trong
-    // CÙNG 1 project -> lỗi "multiple entry points". Đã tách Server thành project
-    // UDM_10.Server riêng (console app) để có thể chạy độc lập với Client (đúng như
-    // kế hoạch "Server + Client chạy 2 tiến trình riêng").
+    
     class Program
     {
         private static TcpListener? _listener;
