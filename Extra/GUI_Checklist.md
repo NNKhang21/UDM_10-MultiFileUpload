@@ -22,6 +22,7 @@ Tài liệu này dùng để kiểm tra các yêu cầu của giao diện (GUI) 
 ---
 - [x] Kéo-thả file+thư mục cùng lúc: chưa xác nhận MessageBox báo lỗi thư mục có
       hiện đúng không (test bị nhiễu do thao tác tay, cần debug lại kỹ hơn sau)
+
 - [x] Giới hạn upload đồng thời + công bố rõ — MaxConcurrentUploads = 3,
       hiện qua lblConcurrencyInfo ngay khi mở app
 ## Ghi chú
