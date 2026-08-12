@@ -29,6 +29,7 @@
         private void InitializeComponent()
         {
             topPanel = new Panel();
+            lblConcurrencyInfo = new Label();
             btnUploadAll = new Button();
             btnTestStatus = new Button();
             btnChooseFiles = new Button();
@@ -42,6 +43,7 @@
             // 
             // topPanel
             // 
+            topPanel.Controls.Add(lblConcurrencyInfo);
             topPanel.Controls.Add(btnUploadAll);
             topPanel.Controls.Add(btnTestStatus);
             topPanel.Controls.Add(btnChooseFiles);
@@ -52,11 +54,20 @@
             topPanel.Size = new Size(1082, 96);
             topPanel.TabIndex = 0;
             // 
+            // lblConcurrencyInfo
+            // 
+            lblConcurrencyInfo.AutoSize = true;
+            lblConcurrencyInfo.Location = new Point(892, 30);
+            lblConcurrencyInfo.Name = "lblConcurrencyInfo";
+            lblConcurrencyInfo.Size = new Size(50, 20);
+            lblConcurrencyInfo.TabIndex = 4;
+            lblConcurrencyInfo.Text = "label1";
+            // 
             // btnUploadAll
             // 
-            btnUploadAll.Location = new Point(784, 35);
+            btnUploadAll.Location = new Point(721, 24);
             btnUploadAll.Name = "btnUploadAll";
-            btnUploadAll.Size = new Size(127, 29);
+            btnUploadAll.Size = new Size(143, 32);
             btnUploadAll.TabIndex = 3;
             btnUploadAll.Text = "Upload tất cả";
             btnUploadAll.UseVisualStyleBackColor = true;
@@ -64,7 +75,7 @@
             // 
             // btnTestStatus
             // 
-            btnTestStatus.Location = new Point(590, 27);
+            btnTestStatus.Location = new Point(572, 24);
             btnTestStatus.Name = "btnTestStatus";
             btnTestStatus.Size = new Size(143, 32);
             btnTestStatus.TabIndex = 2;
@@ -134,6 +145,7 @@
             StartPosition = FormStartPosition.CenterScreen;
             Text = "UDM_10-MultiFileUpload";
             topPanel.ResumeLayout(false);
+            topPanel.PerformLayout();
             dropZone.ResumeLayout(false);
             dropZone.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)gridFiles).EndInit();
@@ -149,5 +161,6 @@
         private DataGridView gridFiles;
         private Button btnTestStatus;
         private Button btnUploadAll;
+        private Label lblConcurrencyInfo;
     }
 }

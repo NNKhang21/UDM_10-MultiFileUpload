@@ -16,7 +16,7 @@ public class UploadManager
     // TODO: doc tu appsettings.json khi Cam Tien hoan thien ClientConfig - tam hard-code
     private const int MaxFiles = 20;
     private const int MaxFileSizeMb = 100;
-    private const int MaxConcurrentUploads = 3; // TODO: doc tu config khi Cam Tien bo sung field nay
+    public const int MaxConcurrentUploads = 3; // TODO: doc tu config khi Cam Tien bo sung field nay
     private readonly SemaphoreSlim _uploadSemaphore = new(MaxConcurrentUploads, MaxConcurrentUploads);
     // TODO: UploadInBatchesAsync() - dieu phoi upload nhieu file dong thoi
     // TODO: CancelUpload(FileUploadItem item)

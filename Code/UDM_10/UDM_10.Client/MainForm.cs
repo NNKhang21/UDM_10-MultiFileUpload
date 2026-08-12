@@ -63,6 +63,8 @@ namespace UDM_10.Client
                     _uploadManager.Files[e.NewIndex].PropertyChanged += (s2, e2) => gridFiles.Invalidate();
                 }
             };
+
+            lblConcurrencyInfo.Text = $"Đồng thời tối đa: {UploadManager.MaxConcurrentUploads} file";
         }
 
         private void AddFilesToList(IEnumerable<string> paths)
