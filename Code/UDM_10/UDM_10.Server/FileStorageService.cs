@@ -110,12 +110,11 @@ private static readonly string[] _windowsReservedNames =
         return await Task.FromResult((string.Empty, (FileStream)null));
     }
 
-private static string NextAvailable(string targetPath)
+private static string NextAvailableName(string targetPath)
 {
    var uploadFolder = Path.GetDirectoryName(targetPath)!;
         var nameOnly = Path.GetFileNameWithoutExtension(targetPath);
         var ext = Path.GetExtension(targetPath);
-
         int duplicateIndex = 1;
         string candidate;
         do
