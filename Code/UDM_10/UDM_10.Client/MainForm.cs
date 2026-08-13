@@ -60,11 +60,29 @@ namespace UDM_10.Client
             {
                 if (e.ListChangedType == ListChangedType.ItemAdded)
                 {
-                    _uploadManager.Files[e.NewIndex].PropertyChanged += (s2, e2) => gridFiles.Invalidate();
+                    _uploadManager.Files[e.NewIndex].PropertyChanged += (s2, e2) =>
+                    {
+                        gridFiles.Invalidate();
+                        UpdateFooter();
+                    };
                 }
+                UpdateFooter();
             };
 
             lblConcurrencyInfo.Text = $"Đồng thời tối đa: {UploadManager.MaxConcurrentUploads} file";
+            UpdateFooter();
+        }
+
+        private void UpdateFooter()
+        {
+            int total = _uploadManager.Files.Count;
+            long totalBytes = _uploadManager.Files.Sum(f => f.FileSizeBytes);
+            int waiting = _uploadManager.Files.Count(f => f.Status == UploadStatus.Waiting);
+            int uploading = _uploadManager.Files.Count(f => f.Status == UploadStatus.Uploading);
+            int completed = _uploadManager.Files.Count(f => f.Status == UploadStatus.Completed);
+
+            lblTotalFiles.Text = $"{total} file ({FileUploadItem.FormatBytes(totalBytes)})";
+            lblQueueStatus.Text = $"Chờ: {waiting} | Đang tải: {uploading} | Xong: {completed}";
         }
 
         private void AddFilesToList(IEnumerable<string> paths)

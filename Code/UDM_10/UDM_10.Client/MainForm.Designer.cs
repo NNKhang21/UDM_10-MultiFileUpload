@@ -29,21 +29,24 @@
         private void InitializeComponent()
         {
             topPanel = new Panel();
-            lblConcurrencyInfo = new Label();
             btnUploadAll = new Button();
             btnTestStatus = new Button();
             btnChooseFiles = new Button();
             dropZone = new Panel();
             dropLabel = new Label();
+            lblQueueStatus = new Label();
+            lblTotalFiles = new Label();
+            lblConcurrencyInfo = new Label();
             gridFiles = new DataGridView();
+            bottomPanel = new Panel();
             topPanel.SuspendLayout();
             dropZone.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)gridFiles).BeginInit();
+            bottomPanel.SuspendLayout();
             SuspendLayout();
             // 
             // topPanel
             // 
-            topPanel.Controls.Add(lblConcurrencyInfo);
             topPanel.Controls.Add(btnUploadAll);
             topPanel.Controls.Add(btnTestStatus);
             topPanel.Controls.Add(btnChooseFiles);
@@ -54,20 +57,11 @@
             topPanel.Size = new Size(1082, 96);
             topPanel.TabIndex = 0;
             // 
-            // lblConcurrencyInfo
-            // 
-            lblConcurrencyInfo.AutoSize = true;
-            lblConcurrencyInfo.Location = new Point(892, 30);
-            lblConcurrencyInfo.Name = "lblConcurrencyInfo";
-            lblConcurrencyInfo.Size = new Size(50, 20);
-            lblConcurrencyInfo.TabIndex = 4;
-            lblConcurrencyInfo.Text = "label1";
-            // 
             // btnUploadAll
             // 
             btnUploadAll.Location = new Point(721, 24);
             btnUploadAll.Name = "btnUploadAll";
-            btnUploadAll.Size = new Size(143, 32);
+            btnUploadAll.Size = new Size(108, 32);
             btnUploadAll.TabIndex = 3;
             btnUploadAll.Text = "Upload tất cả";
             btnUploadAll.UseVisualStyleBackColor = true;
@@ -117,6 +111,36 @@
             dropLabel.Text = "Kéo && thả file vào đây";
             dropLabel.TextAlign = ContentAlignment.MiddleCenter;
             // 
+            // lblQueueStatus
+            // 
+            lblQueueStatus.AutoSize = true;
+            lblQueueStatus.BackColor = Color.Cyan;
+            lblQueueStatus.Location = new Point(152, 24);
+            lblQueueStatus.Name = "lblQueueStatus";
+            lblQueueStatus.Size = new Size(50, 20);
+            lblQueueStatus.TabIndex = 6;
+            lblQueueStatus.Text = "label1";
+            // 
+            // lblTotalFiles
+            // 
+            lblTotalFiles.AutoSize = true;
+            lblTotalFiles.BackColor = Color.Cyan;
+            lblTotalFiles.Location = new Point(12, 24);
+            lblTotalFiles.Name = "lblTotalFiles";
+            lblTotalFiles.Size = new Size(50, 20);
+            lblTotalFiles.TabIndex = 5;
+            lblTotalFiles.Text = "label1";
+            // 
+            // lblConcurrencyInfo
+            // 
+            lblConcurrencyInfo.AutoSize = true;
+            lblConcurrencyInfo.BackColor = Color.Cyan;
+            lblConcurrencyInfo.Location = new Point(370, 24);
+            lblConcurrencyInfo.Name = "lblConcurrencyInfo";
+            lblConcurrencyInfo.Size = new Size(50, 20);
+            lblConcurrencyInfo.TabIndex = 4;
+            lblConcurrencyInfo.Text = "label1";
+            // 
             // gridFiles
             // 
             gridFiles.AllowUserToAddRows = false;
@@ -133,11 +157,24 @@
             gridFiles.TabIndex = 1;
             gridFiles.CellFormatting += gridFiles_CellFormatting;
             // 
+            // bottomPanel
+            // 
+            bottomPanel.Controls.Add(lblQueueStatus);
+            bottomPanel.Controls.Add(lblTotalFiles);
+            bottomPanel.Controls.Add(lblConcurrencyInfo);
+            bottomPanel.Dock = DockStyle.Bottom;
+            bottomPanel.Location = new Point(0, 603);
+            bottomPanel.Name = "bottomPanel";
+            bottomPanel.Padding = new Padding(8);
+            bottomPanel.Size = new Size(1082, 70);
+            bottomPanel.TabIndex = 2;
+            // 
             // MainForm
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1082, 673);
+            Controls.Add(bottomPanel);
             Controls.Add(gridFiles);
             Controls.Add(topPanel);
             MinimumSize = new Size(900, 560);
@@ -145,10 +182,11 @@
             StartPosition = FormStartPosition.CenterScreen;
             Text = "UDM_10-MultiFileUpload";
             topPanel.ResumeLayout(false);
-            topPanel.PerformLayout();
             dropZone.ResumeLayout(false);
             dropZone.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)gridFiles).EndInit();
+            bottomPanel.ResumeLayout(false);
+            bottomPanel.PerformLayout();
             ResumeLayout(false);
         }
 
@@ -162,5 +200,8 @@
         private Button btnTestStatus;
         private Button btnUploadAll;
         private Label lblConcurrencyInfo;
+        private Label lblQueueStatus;
+        private Label lblTotalFiles;
+        private Panel bottomPanel;
     }
 }
