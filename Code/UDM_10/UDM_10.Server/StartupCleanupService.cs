@@ -3,8 +3,6 @@ using System.IO;
 using UDM_10.Shared.Config;
 using UDM_10.Shared.Protocol;
 namespace UDM_10.Server;
-
-// Week 1 skeleton - StartupCleanupService (logic not implemented yet)
 public static class StartupCleanupService
 {
     #region Validation
