@@ -94,11 +94,47 @@ public class UploadManager
         try
         {
             item.Status = UploadStatus.Uploading;
-            var progress = new Progress<double>(p => item.ProgressPercent = p);
+
+            // Tao CTS moi cho lan upload nay. Dispose CTS cu (neu co, vi du tu lan Retry truoc)
+            // de tranh ro rỉ tai nguyen.
+            item.Cts?.Dispose();
+            item.Cts = new CancellationTokenSource();
+
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            long lastBytes = 0;
+            double lastSeconds = 0;
+
+            var progress = new Progress<double>(p =>
+            {
+                item.ProgressPercent = p;
+
+                // FakeUploader chi bao % nen tam suy nguoc ra so byte da gui
+                long currentBytes = (long)(item.FileSizeBytes * (p / 100.0));
+                item.SentBytes = currentBytes;
+
+                double nowSeconds = stopwatch.Elapsed.TotalSeconds;
+                double deltaSeconds = nowSeconds - lastSeconds;
+                long deltaBytes = currentBytes - lastBytes;
+
+                if (deltaSeconds > 0)
+                {
+                    double bytesPerSecond = deltaBytes / deltaSeconds;
+                    item.SpeedText = FileUploadItem.FormatBytes((long)bytesPerSecond) + "/s";
+                }
+
+                lastBytes = currentBytes;
+                lastSeconds = nowSeconds;
+            });
+
             try
             {
-                bool ok = await _uploader.UploadFileAsync(item.FilePath, progress, CancellationToken.None);
+                bool ok = await _uploader.UploadFileAsync(item.FilePath, progress, item.Cts.Token);
                 item.Status = ok ? UploadStatus.Completed : UploadStatus.Failed;
+            }
+            catch (OperationCanceledException)
+            {
+                // Rieng cho truong hop nguoi dung bam nut Huy (Tuan 3 se dung toi)
+                item.Status = UploadStatus.Cancelled;
             }
             catch (Exception ex)
             {

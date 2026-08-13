@@ -56,6 +56,7 @@ namespace UDM_10.Client
                 HeaderText = "Tốc độ",
                 Width = 90
             });
+            gridFiles.CellPainting += gridFiles_CellPainting;
             _uploadManager.Files.ListChanged += (s, e) =>
             {
                 if (e.ListChangedType == ListChangedType.ItemAdded)
@@ -166,6 +167,38 @@ namespace UDM_10.Client
             };
         }
 
+        private void gridFiles_CellPainting(object? sender, DataGridViewCellPaintingEventArgs e)
+        {
+            if (e.RowIndex < 0) return;
+            if (gridFiles.Columns[e.ColumnIndex].DataPropertyName != nameof(FileUploadItem.ProgressPercentText)) return;
+            if (gridFiles.Rows[e.RowIndex].DataBoundItem is not FileUploadItem item) return;
+            if (e.Graphics is null) return; // bao ve, gan gia tri khong-null ben duoi
+
+            var g = e.Graphics;
+            e.PaintBackground(e.CellBounds, true);
+
+            double percent = Math.Clamp(item.ProgressPercent, 0, 100);
+
+            if (item.Status == UploadStatus.Uploading || item.Status == UploadStatus.Completed)
+            {
+                int barWidth = (int)((e.CellBounds.Width - 4) * (percent / 100.0));
+                var barRect = new Rectangle(e.CellBounds.X + 2, e.CellBounds.Y + 3, barWidth, e.CellBounds.Height - 6);
+
+                var barColor = item.Status == UploadStatus.Completed ? Color.MediumSeaGreen : Color.CornflowerBlue;
+                using var barBrush = new SolidBrush(barColor);
+                g.FillRectangle(barBrush, barRect);
+
+                using var borderPen = new Pen(Color.Gray);
+                g.DrawRectangle(borderPen, e.CellBounds.X + 2, e.CellBounds.Y + 3, e.CellBounds.Width - 5, e.CellBounds.Height - 7);
+            }
+
+            // Ve chu % de len tren thanh mau
+            TextRenderer.DrawText(
+                g, item.ProgressPercentText, e.CellStyle!.Font,
+                e.CellBounds, Color.Black,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            e.Handled = true;
+        }
         private async void btnUploadAll_Click(object sender, EventArgs e)
         {
             btnUploadAll.Enabled = false;

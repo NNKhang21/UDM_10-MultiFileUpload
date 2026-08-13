@@ -153,7 +153,7 @@
             gridFiles.RowHeadersVisible = false;
             gridFiles.RowHeadersWidth = 51;
             gridFiles.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            gridFiles.Size = new Size(1082, 577);
+            gridFiles.Size = new Size(1082, 507);
             gridFiles.TabIndex = 1;
             gridFiles.CellFormatting += gridFiles_CellFormatting;
             // 
@@ -174,8 +174,8 @@
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1082, 673);
-            Controls.Add(bottomPanel);
             Controls.Add(gridFiles);
+            Controls.Add(bottomPanel);
             Controls.Add(topPanel);
             MinimumSize = new Size(900, 560);
             Name = "MainForm";
