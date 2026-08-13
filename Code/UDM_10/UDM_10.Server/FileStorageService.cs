@@ -121,11 +121,10 @@ private static string NextAvailableName(string targetPath)
         {
             candidate = Path.Combine(uploadFolder, $"{nameOnly}({duplicateIndex}){ext}");
             duplicateIndex++;
-        } while (File.Exists(candidate) || File.Exists(candidate + ".part"));
-
-        return candidate;
+        } while (File.Exists(candidate) || File.Exists(candidate + ".part"));     
+       return candidate;
 }
-    #endregion
+#endregion
 #region Upload Process
 
     public async Task<string> ReceiveFileAsync(Stream stream, string targetPath, FileStream partFile, long expectedSize, CancellationToken ct, int idleTimeoutMs = 0)
