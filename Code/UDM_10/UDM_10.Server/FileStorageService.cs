@@ -110,12 +110,22 @@ private static readonly string[] _windowsReservedNames =
         return await Task.FromResult((string.Empty, (FileStream)null));
     }
 
-    private static string GenerateDuplicateName(string targetPath)
-    {
-        // TODO: loop to generate name(1), name(2)... until no conflict with file/.part
-        return string.Empty;
-    }
+private static string NextAvailable(string targetPath)
+{
+   var uploadFolder = Path.GetDirectoryName(targetPath)!;
+        var nameOnly = Path.GetFileNameWithoutExtension(targetPath);
+        var ext = Path.GetExtension(targetPath);
 
+        int duplicateIndex = 1;
+        string candidate;
+        do
+        {
+            candidate = Path.Combine(uploadFolder, $"{nameOnly}({duplicateIndex}){ext}");
+            duplicateIndex++;
+        } while (File.Exists(candidate) || File.Exists(candidate + ".part"));
+
+        return candidate;
+}
     #endregion
 #region Upload Process
 
