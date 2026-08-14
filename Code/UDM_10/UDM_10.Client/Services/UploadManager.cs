@@ -1,11 +1,18 @@
 ﻿using System.ComponentModel;
 using UDM_10.Client.Models;
-
+using System.IO;
 namespace UDM_10.Client.Services;
 
+public record UploadOutcome(
+    bool Success, 
+    string? ServerFileName, 
+    string? Message);
 public interface IFileUploader
 {
-    Task<bool> UploadFileAsync(string filePath, IProgress<double> progress, CancellationToken ct);
+    Task<UploadOutcome> UploadFileAsync(
+        string filePath, 
+        IProgress<double> progress, 
+        CancellationToken ct);
 }
 public class UploadManager
 {
@@ -94,9 +101,6 @@ public class UploadManager
         try
         {
             item.Status = UploadStatus.Uploading;
-
-            // Tao CTS moi cho lan upload nay. Dispose CTS cu (neu co, vi du tu lan Retry truoc)
-            // de tranh ro rỉ tai nguyen.
             item.Cts?.Dispose();
             item.Cts = new CancellationTokenSource();
 
@@ -107,33 +111,30 @@ public class UploadManager
             var progress = new Progress<double>(p =>
             {
                 item.ProgressPercent = p;
-
-                // FakeUploader chi bao % nen tam suy nguoc ra so byte da gui
                 long currentBytes = (long)(item.FileSizeBytes * (p / 100.0));
                 item.SentBytes = currentBytes;
 
                 double nowSeconds = stopwatch.Elapsed.TotalSeconds;
                 double deltaSeconds = nowSeconds - lastSeconds;
                 long deltaBytes = currentBytes - lastBytes;
-
                 if (deltaSeconds > 0)
                 {
                     double bytesPerSecond = deltaBytes / deltaSeconds;
                     item.SpeedText = FileUploadItem.FormatBytes((long)bytesPerSecond) + "/s";
                 }
-
                 lastBytes = currentBytes;
                 lastSeconds = nowSeconds;
             });
 
             try
             {
-                bool ok = await _uploader.UploadFileAsync(item.FilePath, progress, item.Cts.Token);
-                item.Status = ok ? UploadStatus.Completed : UploadStatus.Failed;
+                var result = await _uploader.UploadFileAsync(item.FilePath, progress, item.Cts.Token);
+                item.ServerFileName = result.ServerFileName;
+                item.Status = result.Success ? UploadStatus.Completed : UploadStatus.Failed;
+                if (!result.Success) item.ErrorMessage = result.Message;
             }
             catch (OperationCanceledException)
             {
-                // Rieng cho truong hop nguoi dung bam nut Huy (Tuan 3 se dung toi)
                 item.Status = UploadStatus.Cancelled;
             }
             catch (Exception ex)

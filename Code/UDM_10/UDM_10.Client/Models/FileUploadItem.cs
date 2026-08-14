@@ -52,6 +52,8 @@ public class FileUploadItem : INotifyPropertyChanged
     private string? _errorMessage;
     public string? ErrorMessage { get => _errorMessage; set { _errorMessage = value; OnChanged(); } }
 
+    private string? _serverFileName;
+    public string? ServerFileName { get => _serverFileName; set { _serverFileName = value; OnChanged(); } }
     public string ProgressPercentText => Status == UploadStatus.Uploading || Status == UploadStatus.Completed
     ? $"{ProgressPercent:0}%"
     : "";
@@ -64,6 +66,7 @@ public class FileUploadItem : INotifyPropertyChanged
         SentBytes = 0;
         SpeedText = "";
         ErrorMessage = null;
+        ServerFileName = null;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

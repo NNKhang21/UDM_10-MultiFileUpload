@@ -56,6 +56,12 @@ namespace UDM_10.Client
                 HeaderText = "Tốc độ",
                 Width = 90
             });
+            gridFiles.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = nameof(FileUploadItem.ServerFileName),
+                HeaderText = "Tên trên Server",
+                Width = 150
+            });
             gridFiles.CellPainting += gridFiles_CellPainting;
             _uploadManager.Files.ListChanged += (s, e) =>
             {

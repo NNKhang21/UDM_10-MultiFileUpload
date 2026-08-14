@@ -1,7 +1,7 @@
 ﻿namespace UDM_10.Client.Services;
 
 // TAM THOI - xoa khi co NetworkClient that cua Phu hoat dong on dinh
-public class FakeUploader : IFileUploader
+/*public class FakeUploader : IFileUploader
 {
     public async Task<bool> UploadFileAsync(string filePath, IProgress<double> progress, CancellationToken ct)
     {
@@ -11,5 +11,30 @@ public class FakeUploader : IFileUploader
             progress.Report(i);
         }
         return true;
+    }
+}*/
+public class FakeUploader : IFileUploader
+{
+    private readonly HashSet<string> _usedNames = new();
+
+    public async Task<UploadOutcome> UploadFileAsync(string filePath, IProgress<double> progress, CancellationToken ct)
+    {
+        for (int i = 0; i <= 100; i += 20)
+        {
+            await Task.Delay(200, ct);
+            progress.Report(i);
+        }
+
+        string name = Path.GetFileName(filePath);
+        string finalName = name;
+        int counter = 1;
+        while (_usedNames.Contains(finalName))
+        {
+            finalName = $"{Path.GetFileNameWithoutExtension(name)}({counter}){Path.GetExtension(name)}";
+            counter++;
+        }
+        _usedNames.Add(finalName);
+
+        return new UploadOutcome(true, finalName, null);
     }
 }
