@@ -25,6 +25,10 @@ Tài liệu này dùng để kiểm tra các yêu cầu của giao diện (GUI) 
 
 - [x] Giới hạn upload đồng thời + công bố rõ — MaxConcurrentUploads = 3,
       hiện qua lblConcurrencyInfo ngay khi mở app
+
+- [ ] Test trùng tên với Server thật - CHƯA xong, đang chờ Tiến hoàn thiện DuplicatePolicy
+
+- [x] GUI đã sẵn sàng hiển thị tên file cuối cùng (ServerFileName), test bằng FakeUploader mô phỏng đúng cơ chế đổi tên khi trùng
 ## Ghi chú
 
 - Đây là checklist dùng để kiểm tra giao diện Client trước khi nghiệm thu.
