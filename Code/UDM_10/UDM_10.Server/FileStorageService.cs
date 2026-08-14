@@ -109,8 +109,12 @@ private static readonly string[] _windowsReservedNames =
             ServerEvent.ValidationFailed, "File already exists, upload rejected", ("fileName", fileName));
         throw new IOException($"File already exists: {fileName}");
     }
+    if (_config.DuplicatePolicy == "Ovewrite")
+ {
     return targetPath;
-}
+ }
+    return targetPath;
+  }
     
 
     public async Task<(string TargetPath, FileStream PartFile)> PrepareUploadAsync(string fileName, CancellationToken ct = default)
