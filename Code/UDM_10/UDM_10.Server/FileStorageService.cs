@@ -89,18 +89,23 @@ private static readonly string[] _windowsReservedNames =
  
         // TODO: ccheck for name conflicts (including .part files),
         // handle according to DuplicatePolicy: Reject / Overwrite / Rename
-        public string ResolveFinalPath(string fileName)
-     {
+        public string ResolveFinalPath(string fileName) 
+    {
     var targetPath = Path.Combine(_config.UploadDirectory, fileName);
 
-    if (File.Exists(targetPath))
+    if (File.Exists(targetPath) || File.Exists(targetPath + "part"))
     {
-        Logger.Warn(ServerEvent.ValidationFailed, "File already exists", ("fileName", fileName));
+        Logger.Warn(
+            ServerEvent.ValidationFailed,
+            "File already exists, upload rejected",
+            ("fileName", fileName)
+        );
+
         throw new IOException($"File already exists: {fileName}");
     }
 
     return targetPath;
-   }
+    }
  
     
 
