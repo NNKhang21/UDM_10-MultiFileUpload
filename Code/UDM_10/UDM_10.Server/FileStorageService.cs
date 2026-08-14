@@ -93,7 +93,7 @@ private static readonly string[] _windowsReservedNames =
     {
     var targetPath = Path.Combine(_config.UploadDirectory, fileName);
 
-    if (File.Exists(targetPath) || File.Exists(targetPath + "part"))
+    if (File.Exists(targetPath) || File.Exists(targetPath + ".part"))
     {
         Logger.Warn(
             ServerEvent.ValidationFailed,
