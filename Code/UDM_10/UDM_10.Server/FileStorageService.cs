@@ -120,7 +120,7 @@ private static readonly string[] _windowsReservedNames =
 {
     await _nameLock.WaitAsync(ct);
     try
-    {
+    {   var targetPath = ResolveFinalPath(fileName);
         return await Task.FromResult(
             (string.Empty, (FileStream)null));
     }
