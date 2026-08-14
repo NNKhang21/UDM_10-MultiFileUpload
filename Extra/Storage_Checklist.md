@@ -14,8 +14,8 @@ Checklist này dùng để kiểm tra các yêu cầu bắt buộc của phần 
 
 | # | Yêu cầu | Ý nghĩa | Trạng thái |
 |---|---|---|---|
-| 5 | Quy tắc xử lý trùng tên | Ghi đè, từ chối, hoặc tự đổi tên, tuỳ cấu hình đã chọn | Đã làm gồm: Reject/Overwrite/Rename |
-| 6 | Không lỗi khi 2 file trùng tên upload cùng lúc | 2 upload trùng tên chạy song song không được cùng chọn trúng 1 tên đích |  Đã làm gồm:  _nameLock + ReserveUploadTargetAsync |
+| 5 | Quy tắc xử lý trùng tên | Ghi đè, từ chối, hoặc tự đổi tên, tuỳ cấu hình đã chọn | Đã làm |
+| 6 | Không lỗi khi 2 file trùng tên upload cùng lúc | 2 upload trùng tên chạy song song không được cùng chọn trúng 1 tên đích | Đã làm |
 
 ## 3. Xử lý sự cố giữa chừng & giới hạn tài nguyên
 
