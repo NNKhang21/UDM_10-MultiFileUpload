@@ -112,7 +112,7 @@ private static readonly string[] _windowsReservedNames =
  {
     return targetPath;
  }
-    return targetPath;
+    return NextAvailableName(targetPath);
   }
     
 
