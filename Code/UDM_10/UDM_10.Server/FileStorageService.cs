@@ -93,8 +93,7 @@ private static readonly string[] _windowsReservedNames =
     {
     var targetPath = Path.Combine(_config.UploadDirectory, fileName);
 
-    if (!File.Exists(targetPath) &&
-        !File.Exists(targetPath + ".part"))
+    if (!File.Exists(targetPath) && !File.Exists(targetPath + ".part"))
     {
         return targetPath;
     }
@@ -109,7 +108,7 @@ private static readonly string[] _windowsReservedNames =
             ServerEvent.ValidationFailed, "File already exists, upload rejected", ("fileName", fileName));
         throw new IOException($"File already exists: {fileName}");
     }
-    if (_config.DuplicatePolicy == "Ovewrite")
+    if (_config.DuplicatePolicy == "Overwrite")
  {
     return targetPath;
  }
