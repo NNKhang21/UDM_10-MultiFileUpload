@@ -15,6 +15,10 @@ namespace UDM_10.Shared.Models
     public class UploadStartMessage : MessageBase
     {
         public UploadStartMessage() { Type = MessageType.UploadStart; }
+
+        // Mã định danh để phân biệt các lượt upload chạy song song.
+        public string TransferId { get; set; } = string.Empty;
+
         public string FileName { get; set; } = string.Empty;
         public long FileSize { get; set; }
     }
@@ -24,6 +28,7 @@ namespace UDM_10.Shared.Models
         public UploadChunkMessage() { Type = MessageType.UploadChunk; }
         public int ChunkIndex { get; set; }
         public int Length { get; set; }
+
         // Dữ liệu chunk gửi kèm base64 trong JSON để đơn giản ở giai đoạn W2.
         // Có thể tối ưu sau bằng ReadRawAsync (đọc raw byte theo Length, không qua JSON).
         public string DataBase64 { get; set; } = string.Empty;
