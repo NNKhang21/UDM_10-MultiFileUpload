@@ -62,7 +62,16 @@ namespace UDM_10.Client
                 HeaderText = "Tên trên Server",
                 Width = 150
             });
+            gridFiles.Columns.Add(new DataGridViewButtonColumn
+            {
+                Name = "colCancel",
+                HeaderText = "",
+                Text = "Hủy",
+                UseColumnTextForButtonValue = true,
+                Width = 70
+            });
             gridFiles.CellPainting += gridFiles_CellPainting;
+            gridFiles.CellContentClick += gridFiles_CellContentClick;
             _uploadManager.Files.ListChanged += (s, e) =>
             {
                 if (e.ListChangedType == ListChangedType.ItemAdded)
@@ -210,6 +219,24 @@ namespace UDM_10.Client
             btnUploadAll.Enabled = false;
             await _uploadManager.UploadInBatchesAsync();
             btnUploadAll.Enabled = true;
+        }
+        private void gridFiles_CellContentClick(object? sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0) return;
+            if (gridFiles.Rows[e.RowIndex].DataBoundItem is not FileUploadItem item) return;
+
+            string columnName = gridFiles.Columns[e.ColumnIndex].Name;
+
+            if (columnName == "colCancel")
+            {
+                if (item.Status != UploadStatus.Uploading)
+                {
+                    MessageBox.Show("Chỉ có thể hủy file đang tải lên.", "Không thể hủy",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+                _uploadManager.CancelUpload(item);
+            }
         }
     }
 }

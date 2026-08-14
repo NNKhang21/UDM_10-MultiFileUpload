@@ -27,6 +27,11 @@ public class UploadManager
     private readonly SemaphoreSlim _uploadSemaphore = new(MaxConcurrentUploads, MaxConcurrentUploads);
     // TODO: UploadInBatchesAsync() - dieu phoi upload nhieu file dong thoi
     // TODO: CancelUpload(FileUploadItem item)
+    public void CancelUpload(FileUploadItem item)
+    {
+        if (item.Status != UploadStatus.Uploading) return;
+        item.Cts?.Cancel();
+    }
     // TODO: ResetForRetry da nam san trong FileUploadItem, chi can goi lai o day
     public UploadManager(IFileUploader uploader)
     {
