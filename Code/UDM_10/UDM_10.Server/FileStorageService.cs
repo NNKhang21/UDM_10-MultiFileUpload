@@ -116,7 +116,7 @@ private static readonly string[] _windowsReservedNames =
   }
     
 
-    public async Task<(string TargetPath, FileStream PartFile)> PrepareUploadAsync(string fileName, CancellationToken ct = default)
+    public async Task<(string TargetPath, FileStream PartFile)> ReserveUploadTargetAsync(string fileName, CancellationToken ct = default)
     {
         // TODO: lock with _nameLock, call GetUploadPath, create a new ".part" FileStream (CreateNew)
         return await Task.FromResult((string.Empty, (FileStream)null));
