@@ -70,6 +70,22 @@ namespace UDM_10.Client
                 UseColumnTextForButtonValue = true,
                 Width = 70
             });
+            gridFiles.Columns.Add(new DataGridViewButtonColumn
+            {
+                Name = "colRetry",
+                HeaderText = "",
+                Text = "Thử lại",
+                UseColumnTextForButtonValue = true,
+                Width = 80
+            });
+            gridFiles.Columns.Add(new DataGridViewButtonColumn
+            {
+                Name = "colDelete",
+                HeaderText = "",
+                Text = "Xóa",
+                UseColumnTextForButtonValue = true,
+                Width = 70
+            });
             gridFiles.CellPainting += gridFiles_CellPainting;
             gridFiles.CellContentClick += gridFiles_CellContentClick;
             _uploadManager.Files.ListChanged += (s, e) =>
@@ -220,7 +236,7 @@ namespace UDM_10.Client
             await _uploadManager.UploadInBatchesAsync();
             btnUploadAll.Enabled = true;
         }
-        private void gridFiles_CellContentClick(object? sender, DataGridViewCellEventArgs e)
+        private async void gridFiles_CellContentClick(object? sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0) return;
             if (gridFiles.Rows[e.RowIndex].DataBoundItem is not FileUploadItem item) return;
@@ -236,6 +252,24 @@ namespace UDM_10.Client
                     return;
                 }
                 _uploadManager.CancelUpload(item);
+            }
+            else if (columnName == "colRetry")
+            {
+                if (item.Status != UploadStatus.Failed && item.Status != UploadStatus.Cancelled)
+                {
+                    MessageBox.Show("Chỉ thử lại được file Failed hoặc Cancelled.", "Không thể thử lại",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+                await _uploadManager.RetryUploadAsync(item);
+            }
+            else if (columnName == "colDelete")
+            {
+                if (!_uploadManager.RemoveFile(item))
+                {
+                    MessageBox.Show("Không thể xóa file đang chờ hoặc đang tải lên.", "Không thể xóa",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
             }
         }
     }

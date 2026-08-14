@@ -31,6 +31,10 @@ Tài liệu này dùng để kiểm tra các yêu cầu của giao diện (GUI) 
 - [x] GUI đã sẵn sàng hiển thị tên file cuối cùng (ServerFileName), test bằng FakeUploader mô phỏng đúng cơ chế đổi tên khi trùng
 
 - [x] Nút Hủy riêng từng file hoạt động đúng qua item.Cts, không ảnh hưởng file khác
+
+- [x] Nút Thử lại reset đúng qua ResetForRetry(), upload lại thành công
+
+- [x] Nút Xóa chỉ hoạt động khi Completed/Failed/Cancelled, chặn đúng khi Waiting/Uploading
 ## Ghi chú
 
 - Đây là checklist dùng để kiểm tra giao diện Client trước khi nghiệm thu.

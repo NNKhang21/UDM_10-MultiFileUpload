@@ -153,4 +153,15 @@ public class UploadManager
             _uploadSemaphore.Release();
         }
     }
+    public async Task RetryUploadAsync(FileUploadItem item)
+    {
+        if (item.Status != UploadStatus.Failed && item.Status != UploadStatus.Cancelled) return;
+        item.ResetForRetry();
+        await UploadOneFileAsync(item);
+    }
+    public bool RemoveFile(FileUploadItem item)
+    {
+        if (item.Status == UploadStatus.Waiting || item.Status == UploadStatus.Uploading) return false;
+        return Files.Remove(item);
+    }
 }
