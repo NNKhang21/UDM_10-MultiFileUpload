@@ -155,10 +155,11 @@ private static string NextAvailableName(string targetPath)
         return await Task.FromResult(string.Empty);
     }
 
-    private async Task<UploadChunkHeader> ReadChunkHeader(Stream stream, CancellationToken ct, int idleTimeoutMs)
+       private async Task<UploadChunkHeader> ReadChunkHeader(Stream stream, CancellationToken ct, int idleTimeoutMs)
     {
-        // TODO: read JSON header from stream via MessageFramer, deserialize into UploadChunkHeader
-        return await Task.FromResult<UploadChunkHeader>(null);
+        var chunkHeaderJson = await MessageFramer.ReadJsonAsync(stream, ct, idleTimeoutMs);
+        return JsonSerializer.Deserialize<UploadChunkHeader>(chunkHeaderJson)
+            ?? throw new InvalidDataException("Bad chunk header");
     }
 
     private async Task<byte[]> ReadChunkData(Stream stream, int chunkLength, CancellationToken ct, int idleTimeoutMs)
