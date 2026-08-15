@@ -28,15 +28,12 @@ namespace UDM_10.Server
 
             try
             {
-                // Mỗi ClientSession xử lý độc lập.
-                // Không dùng _client.Connected để kiểm tra vòng lặp.
                 while (!token.IsCancellationRequested)
                 {
-                    // Đọc message từ client
                     MessageBase? message =
                         await MessageFramer.ReadAsync(_stream, token);
 
-                    // null = client đã disconnect
+                    // Client đã ngắt kết nối
                     if (message == null)
                     {
                         Console.WriteLine(
@@ -44,13 +41,11 @@ namespace UDM_10.Server
                         break;
                     }
 
-                    // Xử lý message của riêng client này
                     await HandleMessageAsync(message, token);
                 }
             }
             catch (IOException ex)
             {
-                // Client có thể bị mất kết nối đột ngột
                 Console.WriteLine(
                     $"[IO Error] Client disconnected: {ex.Message}");
             }
@@ -71,69 +66,138 @@ namespace UDM_10.Server
             }
             finally
             {
-                // Luôn giải phóng connection khi session kết thúc
+                // Luôn giải phóng tài nguyên
                 Stop();
             }
         }
 
+        /// <summary>
+        /// Điều phối các message nhận được từ Client.
+        /// </summary>
         private async Task HandleMessageAsync(
             MessageBase message,
             CancellationToken token)
         {
-            switch (message)
+            try
             {
-                case UploadStartMessage start:
+                switch (message)
+                {
+                    case UploadStartMessage:
+                    case UploadChunkMessage:
+                    case UploadDoneMessage:
 
-                    Console.WriteLine(
-                        $"Upload started: {start.FileName}");
+                        await HandleUploadAsync(message, token);
+                        break;
 
-                    // Bắt đầu upload cho session hiện tại
-                    await _storage.BeginUploadAsync(start);
+                    default:
 
-                    // Gửi ACK cho UploadStart
-                    await SendAckAsync(
-                        MessageType.UploadStartAck,
-                        token);
+                        Console.WriteLine(
+                            $"Unknown message: {message.GetType().Name}");
+                        break;
+                }
+            }
+            catch (IOException ex)
+            {
+                Console.WriteLine(
+                    $"[HandleMessage IO Error] {ex.Message}");
+                throw;
+            }
+            catch (SocketException ex)
+            {
+                Console.WriteLine(
+                    $"[HandleMessage Socket Error] {ex.Message}");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(
+                    $"[HandleMessage Error] {ex.Message}");
+                throw;
+            }
+        }
 
-                    break;
+        /// <summary>
+        /// Xử lý toàn bộ nghiệp vụ Upload.
+        /// </summary>
+        private async Task HandleUploadAsync(
+            MessageBase message,
+            CancellationToken token)
+        {
+            try
+            {
+                switch (message)
+                {
+                    case UploadStartMessage start:
 
-                case UploadChunkMessage chunk:
+                        Console.WriteLine(
+                            $"Upload started: {start.FileName}");
 
-                    Console.WriteLine(
-                        $"Chunk #{chunk.ChunkIndex}");
+                        await _storage.BeginUploadAsync(start);
 
-                    // Ghi chunk vào file của session hiện tại
-                    await _storage.WriteChunkAsync(chunk);
+                        await SendAckAsync(
+                            MessageType.UploadStartAck,
+                            token);
 
-                    // Gửi ACK cho chunk
-                    await SendAckAsync(
-                        MessageType.UploadChunkAck,
-                        token);
+                        break;
 
-                    break;
+                    case UploadChunkMessage chunk:
 
-                case UploadDoneMessage done:
+                        Console.WriteLine(
+                            $"Chunk #{chunk.ChunkIndex}");
 
-                    Console.WriteLine(
-                        $"Upload completed: {done.FileName}");
+                        await _storage.WriteChunkAsync(chunk);
 
-                    // Hoàn tất upload
-                    bool success =
-                        await _storage.FinishUploadAsync(done);
+                        await SendAckAsync(
+                            MessageType.UploadChunkAck,
+                            token);
 
-                    // Trả kết quả cho client
-                    await SendResultAsync(
-                        success,
-                        token);
+                        break;
 
-                    break;
+                    case UploadDoneMessage done:
 
-                default:
+                        Console.WriteLine(
+                            $"Upload completed: {done.FileName}");
 
-                    Console.WriteLine(
-                        $"Unknown message: {message.GetType().Name}");
+                        bool success =
+                            await _storage.FinishUploadAsync(done);
 
-                    break;
+                        await SendResultAsync(
+                            success,
+                            token);
+
+                        break;
+
+                    default:
+
+                        Console.WriteLine(
+                            $"Unsupported upload message: {message.GetType().Name}");
+
+                        break;
+                }
+            }
+            catch (IOException ex)
+            {
+                Console.WriteLine(
+                    $"[Upload IO Error] {ex.Message}");
+                throw;
+            }
+            catch (SocketException ex)
+            {
+                Console.WriteLine(
+                    $"[Upload Socket Error] {ex.Message}");
+                throw;
+            }
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine(
+                    "[Upload] Operation cancelled.");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(
+                    $"[Upload Error] {ex.Message}");
+                throw;
             }
         }
 
@@ -181,15 +245,8 @@ namespace UDM_10.Server
         {
             try
             {
-                if (_stream != null)
-                {
-                    _stream.Close();
-                }
-
-                if (_client != null)
-                {
-                    _client.Close();
-                }
+                _stream?.Close();
+                _client?.Close();
 
                 Console.WriteLine(
                     "[ClientSession] Connection closed.");
