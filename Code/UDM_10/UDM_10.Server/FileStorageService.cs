@@ -163,9 +163,8 @@ private static string NextAvailableName(string targetPath)
     }
 
     private async Task<byte[]> ReadChunkData(Stream stream, int chunkLength, CancellationToken ct, int idleTimeoutMs)
-    {
-        // TODO: read raw data from stream via MessageFramer according to chunkLength
-        return await Task.FromResult(Array.Empty<byte>());
+     {
+        return await MessageFramer.ReadRawAsync(stream, chunkLength, ct, idleTimeoutMs);
     }
 
     private async Task WriteChunkToPartFile(FileStream partFile, byte[] buffer, CancellationToken ct)
