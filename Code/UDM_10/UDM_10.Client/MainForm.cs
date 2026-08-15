@@ -196,6 +196,8 @@ namespace UDM_10.Client
                 UploadStatus.Cancelled => Color.LightGray,
                 _ => Color.White
             };
+            gridFiles.Rows[e.RowIndex].Cells[e.ColumnIndex].ToolTipText =
+            item.Status == UploadStatus.Failed ? item.ErrorMessage ?? "Lỗi không xác định" : "";
         }
 
         private void gridFiles_CellPainting(object? sender, DataGridViewCellPaintingEventArgs e)

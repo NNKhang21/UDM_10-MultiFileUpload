@@ -35,6 +35,12 @@ Tài liệu này dùng để kiểm tra các yêu cầu của giao diện (GUI) 
 - [x] Nút Thử lại reset đúng qua ResetForRetry(), upload lại thành công
 
 - [x] Nút Xóa chỉ hoạt động khi Completed/Failed/Cancelled, chặn đúng khi Waiting/Uploading
+
+- [x] Cô lập lỗi xác nhận đúng: 1 file lỗi không ảnh hưởng các file khác trong Task.WhenAll
+
+- [x] Tooltip hiển thị rõ ErrorMessage khi hover vào dòng Failed
+
+- [x] GUI không treo khi có file lỗi giữa chừng lúc đang upload nhiều file
 ## Ghi chú
 
 - Đây là checklist dùng để kiểm tra giao diện Client trước khi nghiệm thu.
