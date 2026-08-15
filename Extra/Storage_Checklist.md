@@ -21,7 +21,7 @@ Checklist này dùng để kiểm tra các yêu cầu bắt buộc của phần 
 
 | # | Yêu cầu | Ý nghĩa | Trạng thái |
 |---|---|---|---|
-| 7 | Đối chiếu size thực nhận với size đã báo | Sai lệch phải báo lỗi và xoá phần dữ liệu dở dang | Chưa làm |
+| 7 | Đối chiếu size thực nhận với size đã báo | Sai lệch phải báo lỗi và xoá phần dữ liệu dở dang | Một phần gồm: ReadChunkData đọc đúng chunkLength bằng MessageFramer.ReadRawAsync(); dữ liệu thiếu/không hợp lệ được xử lý qua error handling. |
 | 8 | Chặn Client khai sai kích thước từng phần dữ liệu | Tránh Server bị ép cấp phát bộ nhớ dư thừa | Đã làm |
 | 9 | Dọn dữ liệu dở dang khi mất kết nối giữa chừng | File chưa truyền xong không được để sót lại trên Server | Chưa làm |
 | 10 | Có thời gian chờ tối đa | Client không gửi gì trong thời gian dài phải bị chủ động ngắt, không treo Server | Chưa làm |
