@@ -41,6 +41,8 @@ Tài liệu này dùng để kiểm tra các yêu cầu của giao diện (GUI) 
 - [x] Tooltip hiển thị rõ ErrorMessage khi hover vào dòng Failed
 
 - [x] GUI không treo khi có file lỗi giữa chừng lúc đang upload nhiều file
+
+- [x] Thêm checkbox debug "Giả lập lỗi" để chủ động test lại ở Tuần 5 mà không cần đổi tên file thủ công
 ## Ghi chú
 
 - Đây là checklist dùng để kiểm tra giao diện Client trước khi nghiệm thu.

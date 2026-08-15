@@ -6,12 +6,23 @@ namespace UDM_10.Client
 {
     public partial class MainForm : Form
     {
-        private readonly UploadManager _uploadManager = new(new FakeUploader());
+        private readonly UploadManager _uploadManager;
         private readonly BindingSource _fileBindingSource = new();
 
+        private CheckBox chkSimulateError = new()
+        {
+            Text = "Giả lập lỗi (debug)",
+            AutoSize = true,
+            Location = new Point(860, 15),
+            Checked = false
+        };
         public MainForm()
         {
             InitializeComponent();
+           
+            topPanel.Controls.Add(chkSimulateError);
+            _uploadManager = new UploadManager(new FakeUploader(() => chkSimulateError.Checked));
+
 
             gridFiles.AutoGenerateColumns = false;
 
@@ -183,21 +194,23 @@ namespace UDM_10.Client
 
         private void gridFiles_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
         {
-            if (gridFiles.Columns[e.ColumnIndex].DataPropertyName != nameof(FileUploadItem.StatusLabel)) return;
-
             if (gridFiles.Rows[e.RowIndex].DataBoundItem is not FileUploadItem item) return;
 
-            e.CellStyle!.BackColor = item.Status switch
+            if (gridFiles.Columns[e.ColumnIndex].DataPropertyName == nameof(FileUploadItem.StatusLabel))
             {
-                UploadStatus.Waiting => Color.LightYellow,
-                UploadStatus.Uploading => Color.LightBlue,
-                UploadStatus.Completed => Color.LightGreen,
-                UploadStatus.Failed => Color.LightCoral,
-                UploadStatus.Cancelled => Color.LightGray,
-                _ => Color.White
-            };
-            gridFiles.Rows[e.RowIndex].Cells[e.ColumnIndex].ToolTipText =
-            item.Status == UploadStatus.Failed ? item.ErrorMessage ?? "Lỗi không xác định" : "";
+                e.CellStyle!.BackColor = item.Status switch
+                {
+                    UploadStatus.Waiting => Color.LightYellow,
+                    UploadStatus.Uploading => Color.LightBlue,
+                    UploadStatus.Completed => Color.LightGreen,
+                    UploadStatus.Failed => Color.LightCoral,
+                    UploadStatus.Cancelled => Color.LightGray,
+                    _ => Color.White
+                };
+
+                gridFiles.Rows[e.RowIndex].Cells[e.ColumnIndex].ToolTipText =
+                    item.Status == UploadStatus.Failed ? item.ErrorMessage ?? "Lỗi không xác định" : "";
+            }
         }
 
         private void gridFiles_CellPainting(object? sender, DataGridViewCellPaintingEventArgs e)

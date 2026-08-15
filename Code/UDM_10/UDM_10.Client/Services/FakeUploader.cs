@@ -16,6 +16,12 @@
 public class FakeUploader : IFileUploader
 {
     private readonly HashSet<string> _usedNames = new();
+    private readonly Func<bool> _shouldSimulateError;
+
+    public FakeUploader(Func<bool> shouldSimulateError)
+    {
+        _shouldSimulateError = shouldSimulateError;
+    }
 
     public async Task<UploadOutcome> UploadFileAsync(string filePath, IProgress<double> progress, CancellationToken ct)
     {
@@ -23,6 +29,8 @@ public class FakeUploader : IFileUploader
         {
             await Task.Delay(200, ct);
             progress.Report(i);
+            if (i == 40 && _shouldSimulateError() && filePath.Contains("loi_test"))
+                throw new Exception("Lỗi xử lý file phía Server (giả lập)");
         }
 
         string name = Path.GetFileName(filePath);
