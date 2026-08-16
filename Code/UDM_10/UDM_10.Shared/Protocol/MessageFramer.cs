@@ -10,6 +10,10 @@ namespace UDM_10.Shared.Protocol
 {
     public static class MessageFramer
     {
+        // =========================================================
+        // WRITE
+        // =========================================================
+
         // Gửi message theo format:
         // [4-byte length prefix - Big Endian] + [JSON UTF-8]
         public static async Task WriteAsync(
@@ -23,27 +27,59 @@ namespace UDM_10.Shared.Protocol
 
             byte[] lengthPrefix = BitConverter.GetBytes(payload.Length);
 
-            // Chuyển độ dài sang Big-Endian.
             if (BitConverter.IsLittleEndian)
             {
                 Array.Reverse(lengthPrefix);
             }
 
-            // Gửi 4 byte độ dài trước.
             await stream.WriteAsync(lengthPrefix, token);
 
-            // Sau đó gửi JSON payload.
             await stream.WriteAsync(payload, token);
 
             await stream.FlushAsync(token);
         }
+
+        // Overload có timeout khi gửi message.
+        public static async Task WriteAsync(
+            Stream stream,
+            MessageBase message,
+            CancellationToken token,
+            int idleTimeoutMs)
+        {
+            ValidateIdleTimeout(idleTimeoutMs);
+
+            using CancellationTokenSource timeoutCts =
+                CancellationTokenSource.CreateLinkedTokenSource(token);
+
+            timeoutCts.CancelAfter(idleTimeoutMs);
+
+            try
+            {
+                await WriteAsync(
+                    stream,
+                    message,
+                    timeoutCts.Token);
+            }
+            catch (OperationCanceledException)
+                when (!token.IsCancellationRequested &&
+                      timeoutCts.IsCancellationRequested)
+            {
+                throw new TimeoutException(
+                    $"Quá thời gian gửi message ({idleTimeoutMs} ms).");
+            }
+        }
+
+        // =========================================================
+        // READ MESSAGE
+        // =========================================================
 
         // Đọc một message JSON hoàn chỉnh rồi deserialize thành MessageBase.
         public static async Task<MessageBase?> ReadAsync(
             Stream stream,
             CancellationToken token)
         {
-            string? json = await ReadJsonAsync(stream, token);
+            string? json =
+                await ReadJsonAsync(stream, token);
 
             if (json == null)
             {
@@ -53,87 +89,152 @@ namespace UDM_10.Shared.Protocol
             return Deserialize(json);
         }
 
+        // Overload ReadAsync có idle timeout.
+        public static async Task<MessageBase?> ReadAsync(
+            Stream stream,
+            CancellationToken token,
+            int idleTimeoutMs)
+        {
+            string? json =
+                await ReadJsonAsync(
+                    stream,
+                    token,
+                    idleTimeoutMs);
+
+            if (json == null)
+            {
+                return null;
+            }
+
+            return Deserialize(json);
+        }
+
+        // =========================================================
+        // READ JSON
+        // =========================================================
+
         // Đọc JSON theo format:
         // [4-byte length prefix] + [JSON payload]
-        //
-        // Trả về null nếu phía bên kia đóng kết nối
-        // trước khi bắt đầu một frame mới.
         public static async Task<string?> ReadJsonAsync(
             Stream stream,
             CancellationToken token)
         {
-            // Bước 1:
-            // Đọc chính xác 4 byte chứa độ dài JSON.
-            byte[]? lengthBytes = await ReadExactAsync(
-                stream,
-                4,
-                token);
+            byte[]? lengthBytes =
+                await ReadExactAsync(
+                    stream,
+                    4,
+                    token);
 
-            // Nếu chưa đọc byte nào mà kết nối đã đóng.
             if (lengthBytes == null)
             {
                 return null;
             }
 
-            // Bước 2:
-            // Chuyển từ Big-Endian về định dạng phù hợp với máy.
             if (BitConverter.IsLittleEndian)
             {
                 Array.Reverse(lengthBytes);
             }
 
-            int length = BitConverter.ToInt32(
-                lengthBytes,
-                0);
+            int length =
+                BitConverter.ToInt32(
+                    lengthBytes,
+                    0);
 
-            // Độ dài âm là frame không hợp lệ.
             if (length < 0)
             {
                 throw new InvalidDataException(
                     $"Độ dài JSON không hợp lệ: {length}");
             }
 
-            // Cho phép payload rỗng.
             if (length == 0)
             {
                 return string.Empty;
             }
 
-            // Bước 3:
-            // Đọc chính xác số byte JSON đã được khai báo.
-            byte[]? payload = await ReadExactAsync(
-                stream,
-                length,
-                token);
+            byte[]? payload =
+                await ReadExactAsync(
+                    stream,
+                    length,
+                    token);
 
-            // Nếu đang chờ payload mà kết nối bị đóng.
             if (payload == null)
             {
                 throw new IOException(
                     "Kết nối bị đóng trước khi nhận được JSON payload.");
             }
 
-            // Bước 4:
-            // Chuyển byte UTF-8 trở lại thành chuỗi JSON.
             return Encoding.UTF8.GetString(payload);
         }
 
+        // ReadJsonAsync có idle timeout.
+        public static async Task<string?> ReadJsonAsync(
+            Stream stream,
+            CancellationToken token,
+            int idleTimeoutMs)
+        {
+            ValidateIdleTimeout(idleTimeoutMs);
+
+            byte[]? lengthBytes =
+                await ReadExactAsync(
+                    stream,
+                    4,
+                    token,
+                    idleTimeoutMs);
+
+            if (lengthBytes == null)
+            {
+                return null;
+            }
+
+            if (BitConverter.IsLittleEndian)
+            {
+                Array.Reverse(lengthBytes);
+            }
+
+            int length =
+                BitConverter.ToInt32(
+                    lengthBytes,
+                    0);
+
+            if (length < 0)
+            {
+                throw new InvalidDataException(
+                    $"Độ dài JSON không hợp lệ: {length}");
+            }
+
+            if (length == 0)
+            {
+                return string.Empty;
+            }
+
+            byte[]? payload =
+                await ReadExactAsync(
+                    stream,
+                    length,
+                    token,
+                    idleTimeoutMs);
+
+            if (payload == null)
+            {
+                throw new IOException(
+                    "Kết nối bị đóng trước khi nhận được JSON payload.");
+            }
+
+            return Encoding.UTF8.GetString(payload);
+        }
+
+        // =========================================================
+        // READ RAW
+        // =========================================================
+
         // Đọc raw byte theo đúng độ dài chỉ định.
-        // Dùng cho dữ liệu file/chunk không truyền qua JSON.
         public static async Task<byte[]?> ReadRawAsync(
             Stream stream,
             int length,
             CancellationToken token)
         {
-            // Không cho phép độ dài âm.
-            if (length < 0)
-            {
-                throw new ArgumentOutOfRangeException(
-                    nameof(length),
-                    "Độ dài dữ liệu không được âm.");
-            }
+            ValidateLength(length);
 
-            // Nếu yêu cầu đọc 0 byte thì trả mảng rỗng.
             if (length == 0)
             {
                 return Array.Empty<byte>();
@@ -145,8 +246,33 @@ namespace UDM_10.Shared.Protocol
                 token);
         }
 
-        // TCP không đảm bảo một lần ReadAsync sẽ trả về đủ dữ liệu.
-        //
+        // ReadRawAsync có idle timeout.
+        public static async Task<byte[]?> ReadRawAsync(
+            Stream stream,
+            int length,
+            CancellationToken token,
+            int idleTimeoutMs)
+        {
+            ValidateLength(length);
+            ValidateIdleTimeout(idleTimeoutMs);
+
+            if (length == 0)
+            {
+                return Array.Empty<byte>();
+            }
+
+            return await ReadExactAsync(
+                stream,
+                length,
+                token,
+                idleTimeoutMs);
+        }
+
+        // =========================================================
+        // READ EXACT - KHÔNG TIMEOUT
+        // =========================================================
+
+        // TCP không đảm bảo một lần ReadAsync trả đủ dữ liệu.
         // Vì vậy phải đọc lặp cho đến khi nhận đủ count byte.
         private static async Task<byte[]?> ReadExactAsync(
             Stream stream,
@@ -159,23 +285,20 @@ namespace UDM_10.Shared.Protocol
 
             while (offset < count)
             {
-                int read = await stream.ReadAsync(
-                    buffer.AsMemory(
-                        offset,
-                        count - offset),
-                    token);
+                int read =
+                    await stream.ReadAsync(
+                        buffer.AsMemory(
+                            offset,
+                            count - offset),
+                        token);
 
                 if (read == 0)
                 {
-                    // Chưa nhận byte nào:
-                    // phía bên kia đóng kết nối bình thường.
                     if (offset == 0)
                     {
                         return null;
                     }
 
-                    // Đã nhận một phần nhưng kết nối bị đóng:
-                    // frame đang truyền bị thiếu dữ liệu.
                     throw new IOException(
                         "Kết nối bị đóng khi đang đọc dữ liệu.");
                 }
@@ -186,7 +309,98 @@ namespace UDM_10.Shared.Protocol
             return buffer;
         }
 
-        // Chuyển các loại Message thành JSON.
+        // =========================================================
+        // READ EXACT - CÓ IDLE TIMEOUT
+        // =========================================================
+
+        private static async Task<byte[]?> ReadExactAsync(
+            Stream stream,
+            int count,
+            CancellationToken token,
+            int idleTimeoutMs)
+        {
+            ValidateIdleTimeout(idleTimeoutMs);
+
+            byte[] buffer = new byte[count];
+
+            int offset = 0;
+
+            while (offset < count)
+            {
+                // Mỗi lần ReadAsync có một khoảng timeout riêng.
+                // Khi vừa nhận được dữ liệu, vòng lặp tiếp theo
+                // sẽ bắt đầu lại thời gian idle timeout.
+                using CancellationTokenSource timeoutCts =
+                    CancellationTokenSource.CreateLinkedTokenSource(token);
+
+                timeoutCts.CancelAfter(idleTimeoutMs);
+
+                int read;
+
+                try
+                {
+                    read =
+                        await stream.ReadAsync(
+                            buffer.AsMemory(
+                                offset,
+                                count - offset),
+                            timeoutCts.Token);
+                }
+                catch (OperationCanceledException)
+                    when (!token.IsCancellationRequested &&
+                          timeoutCts.IsCancellationRequested)
+                {
+                    throw new TimeoutException(
+                        $"Không nhận được dữ liệu trong {idleTimeoutMs} ms.");
+                }
+
+                if (read == 0)
+                {
+                    if (offset == 0)
+                    {
+                        return null;
+                    }
+
+                    throw new IOException(
+                        "Kết nối bị đóng khi đang đọc dữ liệu.");
+                }
+
+                offset += read;
+            }
+
+            return buffer;
+        }
+
+        // =========================================================
+        // VALIDATION
+        // =========================================================
+
+        private static void ValidateLength(
+            int length)
+        {
+            if (length < 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(length),
+                    "Độ dài dữ liệu không được âm.");
+            }
+        }
+
+        private static void ValidateIdleTimeout(
+            int idleTimeoutMs)
+        {
+            if (idleTimeoutMs <= 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(idleTimeoutMs),
+                    "Idle timeout phải lớn hơn 0 ms.");
+            }
+        }
+
+        // =========================================================
+        // SERIALIZE
+        // =========================================================
+
         private static string Serialize(
             MessageBase message)
         {
@@ -212,7 +426,10 @@ namespace UDM_10.Shared.Protocol
             };
         }
 
-        // Chuyển JSON trở lại đúng loại Message.
+        // =========================================================
+        // DESERIALIZE
+        // =========================================================
+
         private static MessageBase Deserialize(
             string json)
         {
