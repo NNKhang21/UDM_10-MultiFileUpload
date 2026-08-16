@@ -99,6 +99,7 @@ namespace UDM_10.Client
             });
             gridFiles.CellPainting += gridFiles_CellPainting;
             gridFiles.CellContentClick += gridFiles_CellContentClick;
+            gridFiles.CellFormatting += gridFiles_CellFormatting;
             _uploadManager.Files.ListChanged += (s, e) =>
             {
                 if (e.ListChangedType == ListChangedType.ItemAdded)
@@ -192,7 +193,7 @@ namespace UDM_10.Client
             };
         }
 
-        private void gridFiles_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        private void gridFiles_CellFormatting(object? sender, DataGridViewCellFormattingEventArgs e)
         {
             if (gridFiles.Rows[e.RowIndex].DataBoundItem is not FileUploadItem item) return;
 
