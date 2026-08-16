@@ -8,12 +8,26 @@ using UDM_10.Shared.Config;
 
 namespace UDM_10.Server
 {
+    // NOTE (fix): trước đây file này KHÔNG có namespace, và "using UDM_10.Client.Server"
+    // trỏ sai chỗ -> không thấy ClientSession (namespace UDM_10.Server). Đã thêm
+    // namespace UDM_10.Server để khớp với ClientSession.cs, FileStorageService.cs, Logger.cs.
+    // Đồng thời: trước đây file này và UDM_10.Client/Program.cs cùng có Main() trong
+    // CÙNG 1 project -> lỗi "multiple entry points". Đã tách Server thành project
+    // UDM_10.Server riêng (console app) để có thể chạy độc lập với Client (đúng như
+    // kế hoạch "Server + Client chạy 2 tiến trình riêng").
     class Program
     {
         private static TcpListener? _listener;
         private static readonly CancellationTokenSource _cts = new();
         private static readonly List<ClientSession> _clients = new();
         private static readonly object _lock = new();
+
+        // NOTE (fix): FileStorageService giờ được tạo DUY NHẤT 1 LẦN ở đây (dùng
+        // chung cho toàn Server), thay vì mỗi ClientSession tự "new" một instance
+        // riêng. Lý do: constructor thật của FileStorageService bắt buộc nhận
+        // ServerConfig, và việc tạo lại Directory.CreateDirectory() mỗi session là
+        // lãng phí. Instance này được truyền vào từng ClientSession bên dưới.
+        private static FileStorageService? _storage;
 
         static async Task Main(string[] args)
         {
@@ -39,20 +53,18 @@ namespace UDM_10.Server
 
         private static async Task RunAsync(CancellationToken token)
         {
-            // GIẢ ĐỊNH (cần Nam/người giữ ServerConfig.cs xác nhận):
-            // ServerConfig.Load() trả về 1 instance ServerConfig, và IP/Port
-            // là property của instance đó (không còn static ServerConfig.IP/.Port).
-            // Nếu ServerConfig thực tế vẫn static hoàn toàn thì đổi dòng dưới thành
-            // ServerConfig.Load(); var config = ServerConfig.Current;  (hoặc tương đương)
-            var config = ServerConfig.Load();
+            ServerConfig.Load();
 
-            // Sửa theo README: key cấu hình đúng là "Host", không phải "IP".
-            if (!IPAddress.TryParse(config.Host, out IPAddress? ip))
+            // Tạo 1 FileStorageService dùng chung cho toàn bộ Server,
+            // ngay sau khi ServerConfig đã được load.
+            _storage = new FileStorageService(ServerConfig.Instance);
+
+            if (!IPAddress.TryParse(ServerConfig.IP, out IPAddress? ip))
             {
                 ip = IPAddress.Any;
             }
 
-            _listener = new TcpListener(ip, config.Port);
+            _listener = new TcpListener(ip, ServerConfig.Port);
             _listener.Server.SetSocketOption(
                 SocketOptionLevel.Socket,
                 SocketOptionName.ReuseAddress,
@@ -60,11 +72,7 @@ namespace UDM_10.Server
 
             _listener.Start();
 
-            // FileStorageService dùng chung cho toàn bộ session, tạo 1 lần duy nhất
-            // (tránh mỗi ClientSession tự new + Directory.CreateDirectory lặp lại).
-            var storage = new FileStorageService(config);
-
-            Logger.Info($"Server started {ip}:{config.Port}");
+            Logger.Info($"Server started {ip}:{ServerConfig.Port}");
 
             Console.WriteLine("==============================");
             Console.WriteLine(" SERVER STARTED");
@@ -79,12 +87,7 @@ namespace UDM_10.Server
 
                     Logger.Info($"Client connected: {client.Client.RemoteEndPoint}");
 
-                    // README ghi rõ key là IdleTimeoutSeconds (đơn vị GIÂY), còn
-                    // ReceiveFileAsync nhận idleTimeoutMs (đơn vị MILI-GIÂY) -> phải nhân 1000.
-                    ClientSession session = new ClientSession(
-                        client,
-                        storage,
-                        config.IdleTimeoutSeconds * 1000);
+                    ClientSession session = new ClientSession(client, _storage);
 
                     lock (_lock)
                     {
