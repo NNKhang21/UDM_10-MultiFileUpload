@@ -13,17 +13,25 @@ namespace UDM_10.Server
         private readonly TcpClient _client;
         private readonly NetworkStream _stream;
         private readonly FileStorageService _storage;
+        private readonly int _idleTimeoutMs;
 
-        public ClientSession(TcpClient client)
+        // Nhận FileStorageService dùng chung (singleton) từ Program.cs,
+        // không tự new nữa (constructor thật cần ServerConfig).
+        // idleTimeoutMs: truyền xuống ReceiveFileAsync để server không treo vô hạn
+        // khi Client ngừng gửi dữ liệu giữa chừng (yêu cầu "IdleTimeout" của Nam
+        // trong PhanCong_ThanhVien). GIẢ ĐỊNH: lấy từ config.IdleTimeoutMs ở Program.cs,
+        // cần Cẩm Tiên xác nhận đúng tên field trong ServerConfig.cs.
+        public ClientSession(TcpClient client, FileStorageService storage, int idleTimeoutMs = 0)
         {
             _client = client;
             _stream = client.GetStream();
-            _storage = new FileStorageService();
+            _storage = storage;
+            _idleTimeoutMs = idleTimeoutMs;
         }
 
         public async Task RunAsync(CancellationToken token)
         {
-            Console.WriteLine(
+            Logger.Info(
                 $"[Client Connected] {_client.Client.RemoteEndPoint}");
 
             try
@@ -36,7 +44,7 @@ namespace UDM_10.Server
                     // Client đã ngắt kết nối
                     if (message == null)
                     {
-                        Console.WriteLine(
+                        Logger.Info(
                             "[ClientSession] Client disconnected.");
                         break;
                     }
@@ -46,22 +54,22 @@ namespace UDM_10.Server
             }
             catch (IOException ex)
             {
-                Console.WriteLine(
+                Logger.Warn(
                     $"[IO Error] Client disconnected: {ex.Message}");
             }
             catch (SocketException ex)
             {
-                Console.WriteLine(
+                Logger.Warn(
                     $"[Socket Error] {ex.Message}");
             }
             catch (OperationCanceledException)
             {
-                Console.WriteLine(
+                Logger.Info(
                     "[ClientSession] Session cancelled.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine(
+                Logger.Error(
                     $"[Unexpected Error] {ex.Message}");
             }
             finally
@@ -73,6 +81,9 @@ namespace UDM_10.Server
 
         /// <summary>
         /// Điều phối các message nhận được từ Client.
+        /// Chỉ còn xử lý UploadStartMessage ở tầng message-dispatch:
+        /// phần chunk được ReceiveFileAsync tự đọc thẳng từ _stream,
+        /// không còn đi qua UploadChunkMessage/UploadDoneMessage nữa.
         /// </summary>
         private async Task HandleMessageAsync(
             MessageBase message,
@@ -82,122 +93,124 @@ namespace UDM_10.Server
             {
                 switch (message)
                 {
-                    case UploadStartMessage:
-                    case UploadChunkMessage:
-                    case UploadDoneMessage:
+                    case UploadStartMessage start:
 
-                        await HandleUploadAsync(message, token);
+                        await HandleUploadAsync(start, token);
                         break;
 
                     default:
 
-                        Console.WriteLine(
+                        Logger.Warn(
                             $"Unknown message: {message.GetType().Name}");
                         break;
                 }
             }
             catch (IOException ex)
             {
-                Console.WriteLine(
+                Logger.Warn(
                     $"[HandleMessage IO Error] {ex.Message}");
                 throw;
             }
             catch (SocketException ex)
             {
-                Console.WriteLine(
+                Logger.Warn(
                     $"[HandleMessage Socket Error] {ex.Message}");
                 throw;
             }
             catch (Exception ex)
             {
-                Console.WriteLine(
+                Logger.Error(
                     $"[HandleMessage Error] {ex.Message}");
                 throw;
             }
         }
 
         /// <summary>
-        /// Xử lý toàn bộ nghiệp vụ Upload.
+        /// Xử lý toàn bộ nghiệp vụ Upload cho 1 file:
+        /// validate -> reserve target -> ack -> nhận toàn bộ chunk (1 lệnh gọi) -> gửi kết quả.
         /// </summary>
         private async Task HandleUploadAsync(
-            MessageBase message,
+            UploadStartMessage start,
             CancellationToken token)
         {
+            FileStream? partFile = null;
+            string targetPath = string.Empty;
+
             try
             {
-                switch (message)
-                {
-                    case UploadStartMessage start:
+                Logger.Info(
+                    $"Upload started: {start.FileName}");
 
-                        Console.WriteLine(
-                            $"Upload started: {start.FileName}");
+                // TODO xác nhận với Tiến: UploadStartMessage có field FileSize không?
+                // (dùng để validate + truyền expectedSize cho ReceiveFileAsync)
+                _storage.ValidateFileName(start.FileName);
+                _storage.ValidateFileSize(start.FileSize);
 
-                        await _storage.BeginUploadAsync(start);
+                (targetPath, partFile) =
+                    await _storage.ReserveUploadTargetAsync(start.FileName, token);
 
-                        await SendAckAsync(
-                            MessageType.UploadStartAck,
-                            token);
+                await SendAckAsync(
+                    MessageType.UploadStartAck,
+                    token);
 
-                        break;
+                // ReceiveFileAsync tự đọc header + data từ _stream cho tới khi đủ expectedSize,
+                // tự VerifyUpload + CompleteUpload bên trong, tự RollbackUpload + rethrow nếu lỗi.
+                // Truyền _idleTimeoutMs để không treo vô hạn nếu Client ngừng gửi giữa chừng.
+                string finalPath = await _storage.ReceiveFileAsync(
+                    _stream,
+                    targetPath,
+                    partFile,
+                    start.FileSize,
+                    token,
+                    _idleTimeoutMs);
 
-                    case UploadChunkMessage chunk:
+                Logger.Info(
+                    $"Upload completed: {finalPath}");
 
-                        Console.WriteLine(
-                            $"Chunk #{chunk.ChunkIndex}");
-
-                        await _storage.WriteChunkAsync(chunk);
-
-                        await SendAckAsync(
-                            MessageType.UploadChunkAck,
-                            token);
-
-                        break;
-
-                    case UploadDoneMessage done:
-
-                        Console.WriteLine(
-                            $"Upload completed: {done.FileName}");
-
-                        bool success =
-                            await _storage.FinishUploadAsync(done);
-
-                        await SendResultAsync(
-                            success,
-                            token);
-
-                        break;
-
-                    default:
-
-                        Console.WriteLine(
-                            $"Unsupported upload message: {message.GetType().Name}");
-
-                        break;
-                }
+                await SendResultAsync(true, token);
             }
             catch (IOException ex)
             {
-                Console.WriteLine(
+                Logger.Warn(
                     $"[Upload IO Error] {ex.Message}");
+
+                await TrySendFailureResultAsync(token);
                 throw;
             }
             catch (SocketException ex)
             {
-                Console.WriteLine(
+                Logger.Warn(
                     $"[Upload Socket Error] {ex.Message}");
+
+                await TrySendFailureResultAsync(token);
                 throw;
             }
             catch (OperationCanceledException)
             {
-                Console.WriteLine(
+                Logger.Warn(
                     "[Upload] Operation cancelled.");
                 throw;
             }
             catch (Exception ex)
             {
-                Console.WriteLine(
+                Logger.Error(
                     $"[Upload Error] {ex.Message}");
+
+                await TrySendFailureResultAsync(token);
                 throw;
+            }
+        }
+
+        private async Task TrySendFailureResultAsync(CancellationToken token)
+        {
+            try
+            {
+                await SendResultAsync(false, token);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn(
+                    $"[SendFailureResult Error] {ex.Message}");
             }
         }
 
@@ -216,7 +229,7 @@ namespace UDM_10.Server
                 ack,
                 token);
 
-            Console.WriteLine(
+            Logger.Info(
                 $"ACK -> {ackType}");
         }
 
@@ -237,7 +250,7 @@ namespace UDM_10.Server
                 result,
                 token);
 
-            Console.WriteLine(
+            Logger.Info(
                 $"RESULT -> {success}");
         }
 
@@ -248,12 +261,12 @@ namespace UDM_10.Server
                 _stream?.Close();
                 _client?.Close();
 
-                Console.WriteLine(
+                Logger.Info(
                     "[ClientSession] Connection closed.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine(
+                Logger.Warn(
                     $"[Close Error] {ex.Message}");
             }
         }
