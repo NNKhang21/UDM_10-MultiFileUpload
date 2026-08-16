@@ -1,12 +1,8 @@
+using System;
 using UDM_10.Shared.Protocol;
 
 namespace UDM_10.Shared.Models
 {
-    // NOTE (fix): file này trước đó trống 0 byte. Bản tối thiểu dưới đây đủ để
-    // ClientSession.cs (Trần Hữu Nam) build và chạy được luồng
-    // UploadStart -> Ack -> Chunk -> Ack -> Done -> Result.
-    // Nga (Protocol) nên rà lại field theo đúng thiết kế cuối cùng của nhóm.
-
     public abstract class MessageBase
     {
         public MessageType Type { get; set; }
@@ -14,41 +10,91 @@ namespace UDM_10.Shared.Models
 
     public class UploadStartMessage : MessageBase
     {
-        public UploadStartMessage() { Type = MessageType.UploadStart; }
+        public UploadStartMessage()
+        {
+            Type = MessageType.UploadStart;
+        }
 
-        // Mã định danh để phân biệt các lượt upload chạy song song.
+        // Mã định danh riêng cho từng lượt upload.
         public string TransferId { get; set; } = string.Empty;
 
         public string FileName { get; set; } = string.Empty;
+
         public long FileSize { get; set; }
     }
 
     public class UploadChunkMessage : MessageBase
     {
-        public UploadChunkMessage() { Type = MessageType.UploadChunk; }
+        public UploadChunkMessage()
+        {
+            Type = MessageType.UploadChunk;
+        }
+
+        // Dùng cùng TransferId của UploadStartMessage
+        // để xác định chunk thuộc lượt upload nào.
+        public string TransferId { get; set; } = string.Empty;
+
         public int ChunkIndex { get; set; }
+
         public int Length { get; set; }
 
-        // Dữ liệu chunk gửi kèm base64 trong JSON để đơn giản ở giai đoạn W2.
-        // Có thể tối ưu sau bằng ReadRawAsync (đọc raw byte theo Length, không qua JSON).
         public string DataBase64 { get; set; } = string.Empty;
     }
 
     public class UploadDoneMessage : MessageBase
     {
-        public UploadDoneMessage() { Type = MessageType.UploadDone; }
+        public UploadDoneMessage()
+        {
+            Type = MessageType.UploadDone;
+        }
+
+        // Giúp xác định lượt upload vừa hoàn thành.
+        public string TransferId { get; set; } = string.Empty;
+
         public string FileName { get; set; } = string.Empty;
     }
 
     public class AckMessage : MessageBase
     {
-        public System.DateTime Timestamp { get; set; }
+        // Giữ constructor mặc định để tương thích với
+        // quá trình deserialize JSON hiện tại.
+        public AckMessage()
+        {
+        }
+
+        // Khi chủ động tạo ACK, truyền rõ loại ACK.
+        public AckMessage(MessageType type)
+        {
+            if (type != MessageType.UploadStartAck &&
+                type != MessageType.UploadChunkAck)
+            {
+                throw new ArgumentException(
+                    "AckMessage chỉ hỗ trợ UploadStartAck hoặc UploadChunkAck.",
+                    nameof(type));
+            }
+
+            Type = type;
+            Timestamp = DateTime.Now;
+        }
+
+        // Cho phép đối chiếu ACK với đúng lượt upload.
+        public string TransferId { get; set; } = string.Empty;
+
+        public DateTime Timestamp { get; set; }
     }
 
     public class UploadResultMessage : MessageBase
     {
-        public UploadResultMessage() { Type = MessageType.UploadResult; }
+        public UploadResultMessage()
+        {
+            Type = MessageType.UploadResult;
+        }
+
+        // Giúp Client biết kết quả thuộc lượt upload nào.
+        public string TransferId { get; set; } = string.Empty;
+
         public bool IsSuccess { get; set; }
+
         public string Message { get; set; } = string.Empty;
     }
 }
