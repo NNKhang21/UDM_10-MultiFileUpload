@@ -1,0 +1,292 @@
+using System.ComponentModel;
+using UDM_10.Client.Models;
+using UDM_10.Client.Services;
+
+namespace UDM_10.Client
+{
+    public partial class MainForm : Form
+    {
+        private readonly UploadManager _uploadManager;
+        private readonly BindingSource _fileBindingSource = new();
+
+        private CheckBox chkSimulateError = new()
+        {
+            Text = "Giả lập lỗi (debug)",
+            AutoSize = true,
+            Location = new Point(860, 15),
+            Checked = false
+        };
+        public MainForm()
+        {
+            InitializeComponent();
+           
+            topPanel.Controls.Add(chkSimulateError);
+            _uploadManager = new UploadManager(new FakeUploader(() => chkSimulateError.Checked));
+
+
+            gridFiles.AutoGenerateColumns = false;
+
+            _fileBindingSource.DataSource = _uploadManager.Files;
+            gridFiles.DataSource = _fileBindingSource;
+
+            gridFiles.Columns.Clear();
+            gridFiles.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = nameof(FileUploadItem.FileName),
+                HeaderText = "Tên file",
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
+                FillWeight = 220
+            });
+            gridFiles.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = nameof(FileUploadItem.FileSizeText),
+                HeaderText = "Kích thước",
+                Width = 100
+            });
+            gridFiles.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = nameof(FileUploadItem.StatusLabel),
+                HeaderText = "Trạng thái",
+                Width = 120
+            });
+            gridFiles.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = nameof(FileUploadItem.ProgressPercentText),
+                HeaderText = "Tiến độ (%)",
+                Width = 90
+            });
+            gridFiles.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = nameof(FileUploadItem.ProgressText),
+                HeaderText = "Đã gửi",
+                Width = 140
+            });
+            gridFiles.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = nameof(FileUploadItem.SpeedText),
+                HeaderText = "Tốc độ",
+                Width = 90
+            });
+            gridFiles.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = nameof(FileUploadItem.ServerFileName),
+                HeaderText = "Tên trên Server",
+                Width = 150
+            });
+            gridFiles.Columns.Add(new DataGridViewButtonColumn
+            {
+                Name = "colCancel",
+                HeaderText = "",
+                Text = "Hủy",
+                UseColumnTextForButtonValue = true,
+                Width = 70
+            });
+            gridFiles.Columns.Add(new DataGridViewButtonColumn
+            {
+                Name = "colRetry",
+                HeaderText = "",
+                Text = "Thử lại",
+                UseColumnTextForButtonValue = true,
+                Width = 80
+            });
+            gridFiles.Columns.Add(new DataGridViewButtonColumn
+            {
+                Name = "colDelete",
+                HeaderText = "",
+                Text = "Xóa",
+                UseColumnTextForButtonValue = true,
+                Width = 70
+            });
+            gridFiles.CellPainting += gridFiles_CellPainting;
+            gridFiles.CellContentClick += gridFiles_CellContentClick;
+            gridFiles.CellFormatting += gridFiles_CellFormatting;
+            _uploadManager.Files.ListChanged += (s, e) =>
+            {
+                if (e.ListChangedType == ListChangedType.ItemAdded)
+                {
+                    _uploadManager.Files[e.NewIndex].PropertyChanged += (s2, e2) =>
+                    {
+                        gridFiles.Invalidate();
+                        UpdateFooter();
+                    };
+                }
+                UpdateFooter();
+            };
+
+            lblConcurrencyInfo.Text = $"Đồng thời tối đa: {UploadManager.MaxConcurrentUploads} file";
+            UpdateFooter();
+        }
+
+        private void UpdateFooter()
+        {
+            int total = _uploadManager.Files.Count;
+            long totalBytes = _uploadManager.Files.Sum(f => f.FileSizeBytes);
+            int waiting = _uploadManager.Files.Count(f => f.Status == UploadStatus.Waiting);
+            int uploading = _uploadManager.Files.Count(f => f.Status == UploadStatus.Uploading);
+            int completed = _uploadManager.Files.Count(f => f.Status == UploadStatus.Completed);
+
+            lblTotalFiles.Text = $"{total} file ({FileUploadItem.FormatBytes(totalBytes)})";
+            lblQueueStatus.Text = $"Chờ: {waiting} | Đang tải: {uploading} | Xong: {completed}";
+        }
+
+        private void AddFilesToList(IEnumerable<string> paths)
+        {
+            var errors = new List<string>();
+            foreach (var path in paths)
+            {
+                if (!_uploadManager.AddFile(path, out var error))
+                {
+                    errors.Add(error!);
+                }
+            }
+
+            if (errors.Count > 0)
+            {
+                MessageBox.Show(string.Join(Environment.NewLine, errors),
+                    "Một số file không thể thêm", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private void btnChooseFiles_Click(object sender, EventArgs e)
+        {
+            using var dialog = new OpenFileDialog { Multiselect = true, Title = "Chọn file để upload" };
+            if (dialog.ShowDialog() == DialogResult.OK)
+            {
+                AddFilesToList(dialog.FileNames);
+            }
+        }
+
+        private void dropZone_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data != null && e.Data.GetDataPresent(DataFormats.FileDrop))
+                e.Effect = DragDropEffects.Copy;
+            else
+                e.Effect = DragDropEffects.None;
+        }
+
+        private void dropZone_DragDrop(object sender, DragEventArgs e)
+        {
+            if (e.Data?.GetData(DataFormats.FileDrop) is string[] paths)
+            {
+                BeginInvoke(new Action(() => AddFilesToList(paths)));
+            }
+        }
+
+        private void btnTestStatus_Click(object sender, EventArgs e)
+        {
+            if (_uploadManager.Files.Count == 0)
+            {
+                MessageBox.Show("Chưa có file nào trong danh sách. Kéo-thả hoặc Chọn tệp trước.");
+                return;
+            }
+
+            var item = _uploadManager.Files[0];
+
+            item.Status = item.Status switch
+            {
+                UploadStatus.Waiting => UploadStatus.Uploading,
+                UploadStatus.Uploading => UploadStatus.Completed,
+                UploadStatus.Completed => UploadStatus.Failed,
+                UploadStatus.Failed => UploadStatus.Cancelled,
+                UploadStatus.Cancelled => UploadStatus.Waiting,
+                _ => UploadStatus.Waiting
+            };
+        }
+
+        private void gridFiles_CellFormatting(object? sender, DataGridViewCellFormattingEventArgs e)
+        {
+            if (gridFiles.Rows[e.RowIndex].DataBoundItem is not FileUploadItem item) return;
+
+            if (gridFiles.Columns[e.ColumnIndex].DataPropertyName == nameof(FileUploadItem.StatusLabel))
+            {
+                e.CellStyle!.BackColor = item.Status switch
+                {
+                    UploadStatus.Waiting => Color.LightYellow,
+                    UploadStatus.Uploading => Color.LightBlue,
+                    UploadStatus.Completed => Color.LightGreen,
+                    UploadStatus.Failed => Color.LightCoral,
+                    UploadStatus.Cancelled => Color.LightGray,
+                    _ => Color.White
+                };
+
+                gridFiles.Rows[e.RowIndex].Cells[e.ColumnIndex].ToolTipText =
+                    item.Status == UploadStatus.Failed ? item.ErrorMessage ?? "Lỗi không xác định" : "";
+            }
+        }
+
+        private void gridFiles_CellPainting(object? sender, DataGridViewCellPaintingEventArgs e)
+        {
+            if (e.RowIndex < 0) return;
+            if (gridFiles.Columns[e.ColumnIndex].DataPropertyName != nameof(FileUploadItem.ProgressPercentText)) return;
+            if (gridFiles.Rows[e.RowIndex].DataBoundItem is not FileUploadItem item) return;
+            if (e.Graphics is null) return; // bao ve, gan gia tri khong-null ben duoi
+
+            var g = e.Graphics;
+            e.PaintBackground(e.CellBounds, true);
+
+            double percent = Math.Clamp(item.ProgressPercent, 0, 100);
+
+            if (item.Status == UploadStatus.Uploading || item.Status == UploadStatus.Completed)
+            {
+                int barWidth = (int)((e.CellBounds.Width - 4) * (percent / 100.0));
+                var barRect = new Rectangle(e.CellBounds.X + 2, e.CellBounds.Y + 3, barWidth, e.CellBounds.Height - 6);
+
+                var barColor = item.Status == UploadStatus.Completed ? Color.MediumSeaGreen : Color.CornflowerBlue;
+                using var barBrush = new SolidBrush(barColor);
+                g.FillRectangle(barBrush, barRect);
+
+                using var borderPen = new Pen(Color.Gray);
+                g.DrawRectangle(borderPen, e.CellBounds.X + 2, e.CellBounds.Y + 3, e.CellBounds.Width - 5, e.CellBounds.Height - 7);
+            }
+
+            // Ve chu % de len tren thanh mau
+            TextRenderer.DrawText(
+                g, item.ProgressPercentText, e.CellStyle!.Font,
+                e.CellBounds, Color.Black,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            e.Handled = true;
+        }
+        private async void btnUploadAll_Click(object sender, EventArgs e)
+        {
+            btnUploadAll.Enabled = false;
+            await _uploadManager.UploadInBatchesAsync();
+            btnUploadAll.Enabled = true;
+        }
+        private async void gridFiles_CellContentClick(object? sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0) return;
+            if (gridFiles.Rows[e.RowIndex].DataBoundItem is not FileUploadItem item) return;
+
+            string columnName = gridFiles.Columns[e.ColumnIndex].Name;
+
+            if (columnName == "colCancel")
+            {
+                if (item.Status != UploadStatus.Uploading)
+                {
+                    MessageBox.Show("Chỉ có thể hủy file đang tải lên.", "Không thể hủy",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+                _uploadManager.CancelUpload(item);
+            }
+            else if (columnName == "colRetry")
+            {
+                if (item.Status != UploadStatus.Failed && item.Status != UploadStatus.Cancelled)
+                {
+                    MessageBox.Show("Chỉ thử lại được file Failed hoặc Cancelled.", "Không thể thử lại",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+                await _uploadManager.RetryUploadAsync(item);
+            }
+            else if (columnName == "colDelete")
+            {
+                if (!_uploadManager.RemoveFile(item))
+                {
+                    MessageBox.Show("Không thể xóa file đang chờ hoặc đang tải lên.", "Không thể xóa",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+        }
+    }
+}
