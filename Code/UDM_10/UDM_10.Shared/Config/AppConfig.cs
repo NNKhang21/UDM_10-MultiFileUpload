@@ -3,8 +3,6 @@ using System.Text.Json;
 
 namespace UDM_10.Shared.Config;
 
-// [B] Owner: thanh vien phu trach Shared - Config & Log
-// Doc appsettings.json bang System.Text.Json (co san trong .NET, khong can them NuGet)
 public class ServerConfig
 {
     public string Host { get; set; } = "0.0.0.0";
@@ -13,10 +11,6 @@ public class ServerConfig
     public int MaxFileSizeMb { get; set; } = 100;
     public string DuplicatePolicy { get; set; } = "Rename"; // Overwrite | Rename | Reject
 
-    // BUGFIX #TIMEOUT: thoi gian toi da (giay) Server cho DU LIEU MOI tu 1 Client truoc khi
-    // coi la "im lang bat thuong" va chu dong dong ket noi, tranh 1 client treo giu Task vo
-    // thoi han. Ap dung cho ca frame dieu khien (UploadStart/UploadDone...) lan tung chunk
-    // du lieu file trong luc dang truyen.
     public int IdleTimeoutSeconds { get; set; } = 30;
 
     public static ServerConfig Load(string path)

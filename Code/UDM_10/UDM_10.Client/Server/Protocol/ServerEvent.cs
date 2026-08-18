@@ -1,8 +1,7 @@
 ﻿namespace UDM_10.Shared.Protocol;
 
 using System.IO;
-// [B] Owner: thanh vien phu trach Shared - Config & Log
-// Danh sach event chuan hoa dung chung cho log Server (theo ke hoach logging)
+
 public static class ServerEvent
 {
     public const string ServerStart = "SERVER_START";
