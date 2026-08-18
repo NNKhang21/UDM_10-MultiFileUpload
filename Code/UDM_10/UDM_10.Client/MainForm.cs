@@ -16,12 +16,22 @@ namespace UDM_10.Client
             Location = new Point(860, 15),
             Checked = false
         };
+        private CheckBox chkSimulateDisconnect = new()
+        {
+            Text = "Giả lập mất kết nối (debug)",
+            AutoSize = true,
+            Location = new Point(860, 40),
+            Checked = false
+        };
         public MainForm()
         {
             InitializeComponent();
            
             topPanel.Controls.Add(chkSimulateError);
-            _uploadManager = new UploadManager(new FakeUploader(() => chkSimulateError.Checked));
+            topPanel.Controls.Add(chkSimulateDisconnect);
+            _uploadManager = new UploadManager(new FakeUploader(
+                () => chkSimulateError.Checked,
+                () => chkSimulateDisconnect.Checked));
 
 
             gridFiles.AutoGenerateColumns = false;
@@ -124,9 +134,11 @@ namespace UDM_10.Client
             int waiting = _uploadManager.Files.Count(f => f.Status == UploadStatus.Waiting);
             int uploading = _uploadManager.Files.Count(f => f.Status == UploadStatus.Uploading);
             int completed = _uploadManager.Files.Count(f => f.Status == UploadStatus.Completed);
+            int failed = _uploadManager.Files.Count(f => f.Status == UploadStatus.Failed);
+            int cancelled = _uploadManager.Files.Count(f => f.Status == UploadStatus.Cancelled);
 
             lblTotalFiles.Text = $"{total} file ({FileUploadItem.FormatBytes(totalBytes)})";
-            lblQueueStatus.Text = $"Chờ: {waiting} | Đang tải: {uploading} | Xong: {completed}";
+            lblQueueStatus.Text = $"Chờ: {waiting} | Đang tải: {uploading} | Xong: {completed} | Lỗi: {failed} | Đã hủy: {cancelled}";
         }
 
         private void AddFilesToList(IEnumerable<string> paths)

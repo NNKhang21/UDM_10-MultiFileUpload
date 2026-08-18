@@ -6,10 +6,11 @@ public class FakeUploader : IFileUploader
 {
     private readonly HashSet<string> _usedNames = new();
     private readonly Func<bool> _shouldSimulateError;
-
-    public FakeUploader(Func<bool> shouldSimulateError)
+    private readonly Func<bool> _shouldSimulateDisconnect; 
+    public FakeUploader(Func<bool>? shouldSimulateError = null, Func<bool>? shouldSimulateDisconnect = null)
     {
-        _shouldSimulateError = shouldSimulateError;
+        _shouldSimulateError = shouldSimulateError ?? (() => false);
+        _shouldSimulateDisconnect  = shouldSimulateDisconnect ?? (() => false);
     }
 
     public async Task<UploadOutcome> UploadFileAsync(string filePath, IProgress<double> progress, CancellationToken ct)
@@ -20,6 +21,8 @@ public class FakeUploader : IFileUploader
             progress.Report(i);
             if (i == 40 && _shouldSimulateError() && filePath.Contains("loi_test"))
                 throw new Exception("Lỗi xử lý file phía Server (giả lập)");
+            if (i == 40 && _shouldSimulateDisconnect() && filePath.Contains("loi_test"))
+                throw new Exception("Mất kết nối phía Server (giả lập)");
         }
 
         string name = Path.GetFileName(filePath);

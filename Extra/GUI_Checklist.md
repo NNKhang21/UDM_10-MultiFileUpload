@@ -43,6 +43,11 @@ Tài liệu này dùng để kiểm tra các yêu cầu của giao diện (GUI) 
 - [x] GUI không treo khi có file lỗi giữa chừng lúc đang upload nhiều file
 
 - [x] Thêm checkbox debug "Giả lập lỗi" để chủ động test lại ở Tuần 5 mà không cần đổi tên file thủ công
+
+- [x] Phân biệt rõ lỗi xử lý file vs mất kết nối qua 2 checkbox debug độc lập
+
+- [x] UpdateFooter hiển thị thêm số lượng Lỗi/Đã hủy, không chỉ Chờ/Đang tải/Xong
+
 ## Ghi chú
 ## Cập nhật — chuyển sang dùng UploadQueue (Phú) thay vì SemaphoreSlim rieng
 - [x] UploadManager goi qua UploadQueue.EnqueueAsync, giu dung phan cong ban dau
