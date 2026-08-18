@@ -44,6 +44,10 @@ Tài liệu này dùng để kiểm tra các yêu cầu của giao diện (GUI) 
 
 - [x] Thêm checkbox debug "Giả lập lỗi" để chủ động test lại ở Tuần 5 mà không cần đổi tên file thủ công
 ## Ghi chú
+## Cập nhật — chuyển sang dùng UploadQueue (Phú) thay vì SemaphoreSlim rieng
+- [x] UploadManager goi qua UploadQueue.EnqueueAsync, giu dung phan cong ban dau
+
+- [x] Test lai 6-8 file dong thoi, hanh vi dung 3 file/luc nhu truoc
 
 - Đây là checklist dùng để kiểm tra giao diện Client trước khi nghiệm thu.
 - Mỗi mục sau khi hoàn thành nên được kiểm thử và đánh dấu đạt.

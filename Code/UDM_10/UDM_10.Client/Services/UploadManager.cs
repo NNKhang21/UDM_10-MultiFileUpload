@@ -19,10 +19,10 @@ public class UploadManager
     public BindingList<FileUploadItem> Files { get; } = new();
 
     private readonly IFileUploader _uploader;
+    private readonly UploadQueue _uploadQueue;
     private const int MaxFiles = 50;
     private const int MaxFileSizeMb = 100;
     public const int MaxConcurrentUploads = 3; // TODO: doc tu config khi Cam Tien bo sung field nay
-    private readonly SemaphoreSlim _uploadSemaphore = new(MaxConcurrentUploads, MaxConcurrentUploads);
     public void CancelUpload(FileUploadItem item)
     {
         if (item.Status != UploadStatus.Uploading) return;
@@ -32,6 +32,7 @@ public class UploadManager
     public UploadManager(IFileUploader uploader)
     {
         _uploader = uploader;
+        _uploadQueue = new UploadQueue(uploader, MaxConcurrentUploads);
     }
     public bool AddFile(string path, out string? error)
     {
@@ -98,57 +99,50 @@ public class UploadManager
 
     private async Task UploadOneFileAsync(FileUploadItem item)
     {
-        await _uploadSemaphore.WaitAsync();
+        item.Status = UploadStatus.Uploading;
+        item.Cts?.Dispose();
+        item.Cts = new CancellationTokenSource();
+
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        long lastBytes = 0;
+        double lastSeconds = 0;
+
+        var progress = new Progress<double>(p =>
+        {
+            item.ProgressPercent = p;
+            long currentBytes = (long)(item.FileSizeBytes * (p / 100.0));
+            item.SentBytes = currentBytes;
+
+            double nowSeconds = stopwatch.Elapsed.TotalSeconds;
+            double deltaSeconds = nowSeconds - lastSeconds;
+            long deltaBytes = currentBytes - lastBytes;
+            if (deltaSeconds > 0)
+            {
+                double bytesPerSecond = deltaBytes / deltaSeconds;
+                item.SpeedText = FileUploadItem.FormatBytes((long)bytesPerSecond) + "/s";
+            }
+            lastBytes = currentBytes;
+            lastSeconds = nowSeconds;
+        });
+
         try
         {
-            item.Status = UploadStatus.Uploading;
-            item.Cts?.Dispose();
-            item.Cts = new CancellationTokenSource();
-
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            long lastBytes = 0;
-            double lastSeconds = 0;
-
-            var progress = new Progress<double>(p =>
-            {
-                item.ProgressPercent = p;
-                long currentBytes = (long)(item.FileSizeBytes * (p / 100.0));
-                item.SentBytes = currentBytes;
-
-                double nowSeconds = stopwatch.Elapsed.TotalSeconds;
-                double deltaSeconds = nowSeconds - lastSeconds;
-                long deltaBytes = currentBytes - lastBytes;
-                if (deltaSeconds > 0)
-                {
-                    double bytesPerSecond = deltaBytes / deltaSeconds;
-                    item.SpeedText = FileUploadItem.FormatBytes((long)bytesPerSecond) + "/s";
-                }
-                lastBytes = currentBytes;
-                lastSeconds = nowSeconds;
-            });
-
-            try
-            {
-                var result = await _uploader.UploadFileAsync(item.FilePath, progress, item.Cts.Token);
-                item.ServerFileName = result.ServerFileName;
-                item.Status = result.Success ? UploadStatus.Completed : UploadStatus.Failed;
-                if (!result.Success) item.ErrorMessage = result.Message;
-            }
-            catch (OperationCanceledException)
-            {
-                item.Status = UploadStatus.Cancelled;
-            }
-            catch (Exception ex)
-            {
-                item.Status = UploadStatus.Failed;
-                item.ErrorMessage = ex.Message;
-            }
+            var result = await _uploadQueue.EnqueueAsync(item.FilePath, progress, item.Cts.Token);
+            item.ServerFileName = result.ServerFileName;
+            item.Status = result.Success ? UploadStatus.Completed : UploadStatus.Failed;
+            if (!result.Success) item.ErrorMessage = result.Message;
         }
-        finally
+        catch (OperationCanceledException)
         {
-            _uploadSemaphore.Release();
+            item.Status = UploadStatus.Cancelled;
+        }
+        catch (Exception ex)
+        {
+            item.Status = UploadStatus.Failed;
+            item.ErrorMessage = ex.Message;
         }
     }
+
     public async Task RetryUploadAsync(FileUploadItem item)
     {
         if (item.Status != UploadStatus.Failed && item.Status != UploadStatus.Cancelled) return;
