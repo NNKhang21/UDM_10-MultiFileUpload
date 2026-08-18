@@ -51,13 +51,15 @@ namespace UDM_10.Server
             }
         }
 
-        private static async Task RunAsync(CancellationToken token)
-        {
-            ServerConfig.Load();
+       private static async Task RunAsync(CancellationToken token)
+{
+    ServerConfig.Load();
 
-            // Tạo 1 FileStorageService dùng chung cho toàn bộ Server,
-            // ngay sau khi ServerConfig đã được load.
-            _storage = new FileStorageService(ServerConfig.Instance);
+    // Cleanup dữ liệu/file tạm từ lần chạy Server trước
+    StartupCleanupService.RunStartupCleanup(ServerConfig.Instance);
+
+    // Tạo 1 FileStorageService dùng chung cho toàn bộ Server
+    _storage = new FileStorageService(ServerConfig.Instance);
 
             if (!IPAddress.TryParse(ServerConfig.IP, out IPAddress? ip))
             {
