@@ -239,26 +239,42 @@ namespace UDM_10.Server
                 }
 
                 // ==========================================
-                // 2. CLOSE ALL CLIENTS
+                // 2. COPY CLIENT LIST
                 // ==========================================
+                //
+                // Không giữ _lock trong khi gọi client.Stop()
+                // vì Stop() là thao tác cleanup/IO (đóng stream,
+                // đóng socket) và có thể mất thời gian.
+                // Giữ lock lâu ở đây sẽ chặn Accept loop và
+                // RunClientSessionAsync đang cần _lock để
+                // Add/Remove session.
+
+                List<ClientSession> clientsToStop;
 
                 lock (_lock)
                 {
-                    foreach (ClientSession client in _clients)
-                    {
-                        try
-                        {
-                            client.Stop();
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Warn(
-                                $"Client cleanup error: " +
-                                $"{ex.Message}");
-                        }
-                    }
+                    clientsToStop =
+                        new List<ClientSession>(_clients);
 
                     _clients.Clear();
+                }
+
+                // ==========================================
+                // 3. CLOSE ALL CLIENTS (ngoài lock)
+                // ==========================================
+
+                foreach (ClientSession client in clientsToStop)
+                {
+                    try
+                    {
+                        client.Stop();
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warn(
+                            $"Client cleanup error: " +
+                            $"{ex.Message}");
+                    }
                 }
 
                 Logger.Info(
