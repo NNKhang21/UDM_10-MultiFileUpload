@@ -22,7 +22,7 @@ public class FakeUploader : IFileUploader
             if (i == 40 && _shouldSimulateError() && filePath.Contains("loi_test"))
                 throw new Exception("Lỗi xử lý file phía Server (giả lập)");
             if (i == 40 && _shouldSimulateDisconnect() && filePath.Contains("loi_test"))
-                throw new Exception("Mất kết nối phía Server (giả lập)");
+                throw new IOException("Mất kết nối phía Server (giả lập)");
         }
 
         string name = Path.GetFileName(filePath);
