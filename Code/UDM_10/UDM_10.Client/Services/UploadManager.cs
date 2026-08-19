@@ -22,13 +22,13 @@ public class UploadManager
     private readonly UploadQueue _uploadQueue;
     private const int MaxFiles = 50;
     private const int MaxFileSizeMb = 100;
-    public const int MaxConcurrentUploads = 3; // TODO: doc tu config khi Cam Tien bo sung field nay
+    public const int MaxConcurrentUploads = 3; 
     public void CancelUpload(FileUploadItem item)
     {
         if (item.Status != UploadStatus.Uploading) return;
         item.Cts?.Cancel();
     }
-    // TODO: ResetForRetry da nam san trong FileUploadItem, chi can goi lai o day
+    
     public UploadManager(IFileUploader uploader)
     {
         _uploader = uploader;
