@@ -47,6 +47,7 @@
             // 
             // topPanel
             // 
+            topPanel.BackColor = Color.AliceBlue;
             topPanel.Controls.Add(btnUploadAll);
             topPanel.Controls.Add(btnTestStatus);
             topPanel.Controls.Add(btnChooseFiles);
@@ -114,7 +115,7 @@
             // lblQueueStatus
             // 
             lblQueueStatus.AutoSize = true;
-            lblQueueStatus.BackColor = Color.Cyan;
+            lblQueueStatus.BackColor = SystemColors.HighlightText;
             lblQueueStatus.Location = new Point(152, 24);
             lblQueueStatus.Name = "lblQueueStatus";
             lblQueueStatus.Size = new Size(50, 20);
@@ -124,7 +125,7 @@
             // lblTotalFiles
             // 
             lblTotalFiles.AutoSize = true;
-            lblTotalFiles.BackColor = Color.Cyan;
+            lblTotalFiles.BackColor = SystemColors.HighlightText;
             lblTotalFiles.Location = new Point(12, 24);
             lblTotalFiles.Name = "lblTotalFiles";
             lblTotalFiles.Size = new Size(50, 20);
@@ -134,8 +135,8 @@
             // lblConcurrencyInfo
             // 
             lblConcurrencyInfo.AutoSize = true;
-            lblConcurrencyInfo.BackColor = Color.Cyan;
-            lblConcurrencyInfo.Location = new Point(370, 24);
+            lblConcurrencyInfo.BackColor = SystemColors.HighlightText;
+            lblConcurrencyInfo.Location = new Point(500, 24);
             lblConcurrencyInfo.Name = "lblConcurrencyInfo";
             lblConcurrencyInfo.Size = new Size(50, 20);
             lblConcurrencyInfo.TabIndex = 4;
@@ -145,6 +146,7 @@
             // 
             gridFiles.AllowUserToAddRows = false;
             gridFiles.AllowUserToDeleteRows = false;
+            gridFiles.BackgroundColor = Color.AliceBlue;
             gridFiles.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             gridFiles.Dock = DockStyle.Fill;
             gridFiles.Location = new Point(0, 96);
@@ -159,6 +161,7 @@
             // 
             // bottomPanel
             // 
+            bottomPanel.BackColor = Color.AliceBlue;
             bottomPanel.Controls.Add(lblQueueStatus);
             bottomPanel.Controls.Add(lblTotalFiles);
             bottomPanel.Controls.Add(lblConcurrencyInfo);
