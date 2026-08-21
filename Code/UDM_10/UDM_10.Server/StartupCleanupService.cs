@@ -66,15 +66,43 @@ public static class StartupCleanupService
         return deletedCount;
     }
 
+     // Xoa cac thu muc con rong ben trong thu muc upload
     public static int CleanupEmptyFolders(ServerConfig config)
     {
-       // TODO: if UploadDirectory does not exist, return 0
-        // TODO: get all subfolders (AllDirectories), sort by path length descending
-        // (delete child folders before parent folders), delete empty ones, count how many were deleted
-        return 0;
+        if (!Directory.Exists(config.UploadDirectory)) return 0;
+
+        string[] allFolders = Directory.GetDirectories(config.UploadDirectory,"*",SearchOption.AllDirectories);
+        for (int i = 0; i < allFolders.Length - 1; i++)
+{
+    for (int j = i + 1; j < allFolders.Length; j++)
+    {
+        if (allFolders[i].Length < allFolders[j].Length)
+        {
+            string temp = allFolders[i];
+            allFolders[i] = allFolders[j];
+            allFolders[j] = temp;
+        }
+    }
+}
+        int deletedCount = 0;
+        foreach (string folder in allFolders)
+        {
+            if (Directory.GetFileSystemEntries(folder).Length != 0)
+                continue;
+            try
+            {
+                Directory.Delete(folder);
+                deletedCount++;
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                Logger.Warn(ServerEvent.Cleanup, "Could not delete folder", ("path", folder), ("error", ex.Message));
+            }
+        }
+
+        return deletedCount;
     }
 
-  
 
     #region Orchestration
 
