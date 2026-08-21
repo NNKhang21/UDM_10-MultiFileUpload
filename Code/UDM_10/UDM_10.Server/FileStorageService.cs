@@ -83,51 +83,26 @@ private static readonly string[] _windowsReservedNames =
         throw new ArgumentException("Invalid transfer id", nameof(transferId));
     }
 
-    #region Upload Preparation
-
- 
-        // TODO: ccheck for name conflicts (including .part files),
-        // handle according to DuplicatePolicy: Reject / Overwrite / Rename
-        public string ResolveFinalPath(string fileName)
+    // DUONG DAN FILE
+    public string ResolveFinalPath(string fileName)
     {
-    var targetPath = Path.Combine(_config.UploadDirectory, fileName);
-
-    if (!File.Exists(targetPath) && !File.Exists(targetPath + ".part"))
-    {
-        return targetPath;
-    }
-
-    Logger.Info(
-        ServerEvent.UploadStart,
-        "Duplicate filename detected", 
-        ("fileName", fileName), ("policy", _config.DuplicatePolicy));
-    if (_config.DuplicatePolicy == "Reject")
-    {
-        Logger.Warn(
-            ServerEvent.ValidationFailed, "File already exists, upload rejected", ("fileName", fileName));
+        ValidateFileName(fileName);
+        string targetPath = Path.Combine(_config.UploadDirectory, fileName);
+        string policy = NormalizePolicy();
+        // File ".part" cung tinh la ten da bi chiem
+        if (!File.Exists(targetPath) && !File.Exists(targetPath + ".part")) return targetPath;
+        if (policy == "REJECT") 
         throw new IOException($"File already exists: {fileName}");
+        if (policy == "OVERWRITE") return targetPath;
+        return NextAvailableName(targetPath); // con lai la RENAME
     }
-    if (_config.DuplicatePolicy == "Overwrite")
- {
-    return targetPath;
- }
-    return NextAvailableName(targetPath);
-  }
-    
-
-public async Task<(string TargetPath, FileStream PartFile)> ReserveUploadTargetAsync(string fileName, CancellationToken ct = default)
-  { await _nameLock.WaitAsync(ct);
-    try
+    private string NormalizePolicy()
     {
-        var targetPath = ResolveFinalPath(fileName);
-        var partFile = new FileStream( targetPath + ".part",FileMode.CreateNew, FileAccess.Write);
-        return (targetPath, partFile);
+        string policy = (_config.DuplicatePolicy ?? "").Trim().ToUpperInvariant();
+        if (policy != "REJECT" && policy != "OVERWRITE" && policy != "RENAME")
+            throw new InvalidOperationException($"Invalid DuplicatePolicy: {_config.DuplicatePolicy}");
+        return policy;
     }
-    finally
-    {
-        _nameLock.Release();
-    }
-}
 
 private static string NextAvailableName(string targetPath)
 {
@@ -143,7 +118,7 @@ private static string NextAvailableName(string targetPath)
         } while (File.Exists(candidate) || File.Exists(candidate + ".part"));     
        return candidate;
 }
-#endregion
+
 #region Upload Process
 
     public async Task<string> ReceiveFileAsync(Stream stream, string targetPath, FileStream partFile, long expectedSize, CancellationToken ct, int idleTimeoutMs = 0)
