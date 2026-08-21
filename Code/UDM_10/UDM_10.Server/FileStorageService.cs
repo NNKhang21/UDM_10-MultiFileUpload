@@ -22,7 +22,19 @@ private static readonly string[] _windowsReservedNames =
     private readonly object _lock = new object();
     // Danh sach cac upload dang chay, key la TransferId
     private readonly Dictionary<string, UploadContext> _uploads = new Dictionary<string, UploadContext>(StringComparer.OrdinalIgnoreCase);
-
+    private class UploadContext
+    {
+        public string TransferId { get; set; } = "";
+        public string FileName { get; set; } = "";
+        public string TargetPath { get; set; } = "";
+        public FileStream PartFile { get; set; } = null!;
+        public long ExpectedSize { get; set; }
+        public long ReceivedSize { get; set; }
+        public int NextChunkIndex { get; set; }
+        public bool OverwriteOnFinish { get; set; }
+        // Rieng cho 1 upload, dung SemaphoreSlim vi phai await luc ghi file 
+        public SemaphoreSlim Lock { get; } = new SemaphoreSlim(1, 1);
+    }
     public FileStorageService(ServerConfig config)
     {
         _config = config;
