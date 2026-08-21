@@ -40,62 +40,41 @@ private static readonly string[] _windowsReservedNames =
         _config = config ?? throw new ArgumentNullException(nameof(config));
         Directory.CreateDirectory(_config.UploadDirectory);
     }
-  
-
-     public void ValidateFileName(string fileName)
+       // Kiem tra ten file: rong, dai qua, path traversal, ky tu la, ket thuc bang dot/space, ten cam cua Windows.
+    public void ValidateFileName(string fileName)
     {
-        if (string.IsNullOrWhiteSpace(fileName))
-        {
-            Logger.Warn(ServerEvent.ValidationFailed, "Empty filename", ("fileName", fileName ?? ""));
-            throw new ArgumentException("Empty filename");
-        }
+    if (string.IsNullOrWhiteSpace(fileName)) 
+    throw new ArgumentException("Empty filename", nameof(fileName));
+    if (fileName.Length > MaxFileNameLength) 
+    throw new ArgumentException("Filename too long", nameof(fileName));
+        // Chan rieng '/' va '\': "a/b" khong co ".." nhung van la traversal
+     if (fileName.Contains(".."))
+    throw new ArgumentException("Invalid filename (path traversal)", nameof(fileName));
 
-        if (fileName.Length > MaxFileNameLength)
-        {
-            Logger.Warn(ServerEvent.ValidationFailed, "Filename too long",
-                ("fileName", fileName), ("length", fileName.Length));
-            throw new ArgumentException("Filename too long");
-        }
-
-        if (fileName.Contains("..") || Path.IsPathRooted(fileName))
-        {
-            Logger.Warn(ServerEvent.ValidationFailed, "Invalid filename (path traversal)", ("fileName", fileName));
-            throw new ArgumentException("Invalid filename (path traversal)");
-        }
-
-        if (fileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
-        {
-            Logger.Warn(ServerEvent.ValidationFailed, "Invalid characters in filename", ("fileName", fileName));
-            throw new ArgumentException("Invalid characters in filename");
-        }
-
-  var nameOnly = Path.GetFileNameWithoutExtension(fileName).ToUpperInvariant();
-        for (int i = 0; i < _windowsReservedNames.Length; i++)
-        {
-            if (nameOnly == _windowsReservedNames[i])
-            {
-                Logger.Warn(ServerEvent.ValidationFailed, "Reserved filename", ("fileName", fileName));
-                throw new ArgumentException("Reserved filename");
-            }
-        }
+    if (fileName.Contains('/') || fileName.Contains('\\'))
+    throw new ArgumentException("Invalid filename (path traversal)", nameof(fileName));
+    if (Path.IsPathRooted(fileName))
+    throw new ArgumentException("Invalid filename (path traversal)", nameof(fileName));
+    if (fileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+         throw new ArgumentException("Invalid filename characters", nameof(fileName));
+    if (fileName.EndsWith('.') || fileName.EndsWith(' ')) 
+        throw new ArgumentException("Filename cannot end with dot or space", nameof(fileName));
+        // Lay phan ten truoc dau cham dau tien de so voi danh sach cam (vd "CON.txt" cung bi cam)
+        string nameOnly = fileName.TrimEnd('.', ' ').Split('.')[0].ToUpperInvariant();
+     foreach (string reserved in _windowsReservedNames)
+        if (nameOnly == reserved) throw new ArgumentException("Reserved filename", nameof(fileName));
     }
-
-     public void ValidateFileSize(long fileSize)
+       public void ValidateFileSize(long fileSize)
     {
         long maxBytes = (long)_config.MaxFileSizeMb * 1024 * 1024;
         if (fileSize <= 0 || fileSize > maxBytes)
-        {
-            Logger.Warn(ServerEvent.ValidationFailed, "Invalid file size",
-                ("fileSize", fileSize), ("maxBytes", maxBytes));
-            throw new ArgumentException($"Size {fileSize} exceeds limit {maxBytes} bytes");
-        }
+            throw new ArgumentException($"Invalid file size: {fileSize} (max {maxBytes} bytes)");
     }
     public void ValidateChunkLength(long declaredLength, long remainingBytes)
     {
         // TODO: check declaredLength <= 0 or greater than remainingBytes
     }
 
-    #endregion
 
     #region Upload Preparation
 
