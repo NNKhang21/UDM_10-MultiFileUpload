@@ -102,16 +102,17 @@ public static class StartupCleanupService
 
         return deletedCount;
     }
-
-
-    #region Orchestration
-
+   /// Chay cac buoc don rac o tren, goi 1 lan luc Server khoi dong.
     public static (int FilesDeleted, int FoldersDeleted) RunStartupCleanup(ServerConfig config)
     {
-        // TODO: call ValidateUploadDirectory first, if it fails return (0,0) and log an error,
-        // otherwise call CleanupPartialFiles then CleanupEmptyFolders, log the result, return the tuple
-        return (0, 0);
+        if (!ValidateUploadDirectory(config))
+        {
+            Logger.Error(ServerEvent.Cleanup, "Upload directory invalid, cannot start server", ("path", config.UploadDirectory));
+            throw new InvalidOperationException($"Upload directory '{config.UploadDirectory}' is invalid or not writable.");
+        }
+        int filesDeleted = CleanupPartialFiles(config);
+        int foldersDeleted = CleanupEmptyFolders(config);
+        Logger.Info(ServerEvent.Cleanup, $"Startup cleanup done: {filesDeleted} file(s), {foldersDeleted} folder(s) removed");
+        return (filesDeleted, foldersDeleted);
     }
-
-    #endregion
 }
