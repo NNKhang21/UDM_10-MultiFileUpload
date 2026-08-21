@@ -2,21 +2,45 @@ using System;
 using System.IO;
 using UDM_10.Shared.Config;
 using UDM_10.Shared.Protocol;
+
 namespace UDM_10.Server;
+// Don rac ".part" con sot lai tu lan chay truoc, chay luc Server khoi dong
 public static class StartupCleanupService
 {
-    #region Validation
-
+     // Check thu muc upload co ton tai va ghi duoc khong, tu tao neu chua co
     public static bool ValidateUploadDirectory(ServerConfig config)
     {
-        // TODO: check if upload directory exists, create it if not,
-        // then write a test file and delete it to make sure the directory is writable
+        if (!Directory.Exists(config.UploadDirectory))
+        {
+            try
+            {
+                Directory.CreateDirectory(config.UploadDirectory);
+                Logger.Info(ServerEvent.Cleanup, "Upload directory created", ("path", config.UploadDirectory));
+            }
+            catch (Exception ex)
+{
+    if (ex is IOException || ex is UnauthorizedAccessException)
+    {
+        Logger.Warn(ServerEvent.Cleanup, "Could not create upload directory", ("path", config.UploadDirectory), ("error", ex.Message));
         return false;
     }
 
-    #endregion
-
-    #region Cleanup
+    throw;
+}
+        }
+        string testFile = Path.Combine(config.UploadDirectory, ".writetest");
+        try
+        {
+            File.WriteAllText(testFile, "");
+            File.Delete(testFile);
+        }
+        catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+        {
+            Logger.Warn(ServerEvent.Cleanup, "Upload directory not writable",("path", config.UploadDirectory), ("error", ex.Message));
+            return false;
+        }
+        return true;
+    }
 
     public static int CleanupPartialFiles(ServerConfig config)
     {
@@ -34,7 +58,7 @@ public static class StartupCleanupService
         return 0;
     }
 
-    #endregion
+  
 
     #region Orchestration
 
