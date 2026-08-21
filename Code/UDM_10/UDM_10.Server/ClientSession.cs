@@ -13,113 +13,191 @@ namespace UDM_10.Server
         private readonly TcpClient _client;
         private readonly NetworkStream _stream;
         private readonly FileStorageService _storage;
+        private readonly TimeSpan _idleTimeout;
 
-        // FileStorageService giờ được truyền vào (dùng chung 1 instance
-        // cho toàn Server), thay vì mỗi session tự "new" một cái riêng.
-        public ClientSession(TcpClient client, FileStorageService storage)
+        // Đảm bảo Stop() chỉ thực hiện cleanup một lần.
+        private int _stopped;
+
+        // FileStorageService được dùng chung cho toàn Server.
+        public ClientSession(
+            TcpClient client,
+            FileStorageService storage,
+            TimeSpan idleTimeout)
         {
-            _client = client;
-            _stream = client.GetStream();
-            _storage = storage;
+            _client = client ?? throw new ArgumentNullException(nameof(client));
+            _storage = storage ?? throw new ArgumentNullException(nameof(storage));
+            _idleTimeout = idleTimeout;
+
+            _stream = _client.GetStream();
         }
 
+        /// <summary>
+        /// Chạy vòng đời của một ClientSession.
+        ///
+        /// Lifecycle:
+        /// Connect
+        ///     ↓
+        /// Read Message
+        ///     ↓
+        /// Handle Message
+        ///     ↓
+        /// Read Message ...
+        ///     ↓
+        /// Disconnect / Timeout / Cancellation / Error
+        ///     ↓
+        /// Stop()
+        /// </summary>
         public async Task RunAsync(CancellationToken token)
         {
+            string remoteEndPoint =
+                _client.Client.RemoteEndPoint?.ToString()
+                ?? "Unknown";
+
             Logger.Info(
-                $"[Client Connected] {_client.Client.RemoteEndPoint}");
+                $"[Client Connected] {remoteEndPoint}");
 
             try
             {
                 while (!token.IsCancellationRequested)
                 {
                     MessageBase? message =
-                        await MessageFramer.ReadAsync(_stream, token);
+                        await ReadWithIdleTimeoutAsync(token);
 
-                    // Client đã ngắt kết nối
+                    // null nghĩa là Client đã đóng kết nối.
                     if (message == null)
                     {
                         Logger.Info(
-                            "[ClientSession] Client disconnected.");
+                            $"[Client Disconnected] {remoteEndPoint}");
+
                         break;
                     }
 
-                    await HandleMessageAsync(message, token);
+                    await HandleMessageAsync(
+                        message,
+                        token);
                 }
+            }
+            catch (TimeoutException ex)
+            {
+                Logger.Warn(
+                    $"[Idle Timeout] Client {remoteEndPoint} " +
+                    $"was idle for {_idleTimeout.TotalSeconds} seconds. " +
+                    $"Details: {ex.Message}");
             }
             catch (IOException ex)
             {
                 Logger.Warn(
-                    $"[IO Error] Client disconnected: {ex.Message}");
+                    $"[IO Error] Client {remoteEndPoint} " +
+                    $"disconnected. Details: {ex.Message}");
             }
             catch (SocketException ex)
             {
                 Logger.Warn(
-                    $"[Socket Error] {ex.Message}");
+                    $"[Socket Error] Client {remoteEndPoint}. " +
+                    $"Details: {ex.Message}");
             }
             catch (OperationCanceledException)
+                when (token.IsCancellationRequested)
             {
                 Logger.Info(
-                    "[ClientSession] Session cancelled.");
+                    $"[Session Cancelled] Client {remoteEndPoint}");
             }
             catch (Exception ex)
             {
+                // Exception của một Client chỉ ảnh hưởng session đó.
                 Logger.Warn(
-                    $"[Unexpected Error] {ex.Message}");
+                    $"[Unexpected Session Error] Client {remoteEndPoint}. " +
+                    $"Details: {ex}");
             }
             finally
             {
-                // Luôn giải phóng tài nguyên
                 Stop();
             }
         }
 
         /// <summary>
-        /// Điều phối các message nhận được từ Client.
+        /// Đọc message từ Client với cơ chế IdleTimeout.
+        ///
+        /// Nếu Client không gửi message trong khoảng thời gian
+        /// _idleTimeout thì session bị timeout.
+        /// </summary>
+        private async Task<MessageBase?> ReadWithIdleTimeoutAsync(
+            CancellationToken token)
+        {
+            using var timeoutCts =
+                CancellationTokenSource.CreateLinkedTokenSource(token);
+
+            timeoutCts.CancelAfter(_idleTimeout);
+
+            try
+            {
+                return await MessageFramer.ReadAsync(
+                    _stream,
+                    timeoutCts.Token);
+            }
+            catch (OperationCanceledException)
+                when (!token.IsCancellationRequested)
+            {
+                throw new TimeoutException(
+                    $"Client exceeded idle timeout of " +
+                    $"{_idleTimeout.TotalSeconds} seconds.");
+            }
+        }
+
+        /// <summary>
+        /// Điều phối message nhận được từ Client.
         /// </summary>
         private async Task HandleMessageAsync(
             MessageBase message,
             CancellationToken token)
         {
-            try
-            {
-                switch (message)
-                {
-                    case UploadStartMessage:
-                    case UploadChunkMessage:
-                    case UploadDoneMessage:
-
-                        await HandleUploadAsync(message, token);
-                        break;
-
-                    default:
-
-                        Logger.Warn(
-                            $"Unknown message: {message.GetType().Name}");
-                        break;
-                }
-            }
-            catch (IOException ex)
+            if (message == null)
             {
                 Logger.Warn(
-                    $"[HandleMessage IO Error] {ex.Message}");
-                throw;
+                    "[Protocol Warning] Received null message.");
+
+                return;
             }
-            catch (SocketException ex)
+
+            switch (message)
             {
-                Logger.Warn(
-                    $"[HandleMessage Socket Error] {ex.Message}");
-                throw;
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn(
-                    $"[HandleMessage Error] {ex.Message}");
-                throw;
+                case UploadStartMessage:
+                case UploadChunkMessage:
+                case UploadDoneMessage:
+
+                    await HandleUploadAsync(
+                        message,
+                        token);
+
+                    break;
+
+                default:
+
+                    // Message tồn tại nhưng ClientSession
+                    // chưa hỗ trợ loại message này.
+                    //
+                    // Không được để message lạ làm Server crash.
+                    Logger.Warn(
+                        $"[Unknown Message] " +
+                        $"Unsupported message type: " +
+                        $"{message.GetType().FullName}. " +
+                        $"Message will be ignored.");
+
+                    break;
             }
         }
 
         /// <summary>
         /// Xử lý toàn bộ nghiệp vụ Upload.
+        ///
+        /// UploadStart
+        ///     -> UploadStartAck
+        ///
+        /// UploadChunk
+        ///     -> UploadChunkAck
+        ///
+        /// UploadDone
+        ///     -> UploadResult
         /// </summary>
         private async Task HandleUploadAsync(
             MessageBase message,
@@ -132,7 +210,7 @@ namespace UDM_10.Server
                     case UploadStartMessage start:
 
                         Logger.Info(
-                            $"Upload started: {start.FileName}");
+                            $"[Upload Start] File={start.FileName}");
 
                         await _storage.BeginUploadAsync(start);
 
@@ -145,7 +223,8 @@ namespace UDM_10.Server
                     case UploadChunkMessage chunk:
 
                         Logger.Info(
-                            $"Chunk #{chunk.ChunkIndex}");
+                            $"[Upload Chunk] " +
+                            $"Chunk={chunk.ChunkIndex}");
 
                         await _storage.WriteChunkAsync(chunk);
 
@@ -158,7 +237,7 @@ namespace UDM_10.Server
                     case UploadDoneMessage done:
 
                         Logger.Info(
-                            $"Upload completed: {done.FileName}");
+                            $"[Upload Done] File={done.FileName}");
 
                         bool success =
                             await _storage.FinishUploadAsync(done);
@@ -171,38 +250,73 @@ namespace UDM_10.Server
 
                     default:
 
+                        // Trường hợp này gần như không xảy ra vì
+                        // HandleMessageAsync đã lọc message.
                         Logger.Warn(
-                            $"Unsupported upload message: {message.GetType().Name}");
+                            $"[Upload Warning] Unsupported upload " +
+                            $"message: {message.GetType().Name}");
 
                         break;
                 }
             }
+            catch (OperationCanceledException)
+                when (token.IsCancellationRequested)
+            {
+                Logger.Info(
+                    "[Upload Cancelled] Upload operation cancelled.");
+
+                throw;
+            }
             catch (IOException ex)
             {
-                Logger.Warn(
-                    $"[Upload IO Error] {ex.Message}");
-                throw;
+                await HandleUploadErrorAsync(
+                    $"I/O error during upload: {ex.Message}",
+                    token);
             }
             catch (SocketException ex)
             {
-                Logger.Warn(
-                    $"[Upload Socket Error] {ex.Message}");
-                throw;
+                await HandleUploadErrorAsync(
+                    $"Socket error during upload: {ex.Message}",
+                    token);
             }
-            catch (OperationCanceledException)
+            catch (Exception ex)
             {
-                Logger.Info(
-                    "[Upload] Operation cancelled.");
-                throw;
+                await HandleUploadErrorAsync(
+                    $"Upload processing error: {ex.Message}",
+                    token);
+            }
+        }
+
+        /// <summary>
+        /// Xử lý lỗi xảy ra trong quá trình Upload.
+        ///
+        /// Cố gắng thông báo thất bại cho Client trước khi
+        /// session tiếp tục hoặc kết thúc.
+        /// </summary>
+        private async Task HandleUploadErrorAsync(
+            string errorMessage,
+            CancellationToken token)
+        {
+            Logger.Warn(
+                $"[Upload Error] {errorMessage}");
+
+            try
+            {
+                await SendResultAsync(
+                    false,
+                    token);
             }
             catch (Exception ex)
             {
                 Logger.Warn(
-                    $"[Upload Error] {ex.Message}");
-                throw;
+                    $"[Upload Error Response Failed] " +
+                    $"{ex.Message}");
             }
         }
 
+        /// <summary>
+        /// Gửi ACK về Client.
+        /// </summary>
         private async Task SendAckAsync(
             MessageType ackType,
             CancellationToken token)
@@ -219,9 +333,12 @@ namespace UDM_10.Server
                 token);
 
             Logger.Info(
-                $"ACK -> {ackType}");
+                $"[ACK -> Client] {ackType}");
         }
 
+        /// <summary>
+        /// Gửi kết quả Upload về Client.
+        /// </summary>
         private async Task SendResultAsync(
             bool success,
             CancellationToken token)
@@ -240,15 +357,46 @@ namespace UDM_10.Server
                 token);
 
             Logger.Info(
-                $"RESULT -> {success}");
+                $"[RESULT -> Client] Success={success}");
         }
 
+        /// <summary>
+        /// Đóng ClientSession và giải phóng tài nguyên.
+        ///
+        /// Interlocked đảm bảo Stop() chỉ thực hiện một lần
+        /// kể cả khi được gọi đồng thời từ nhiều nơi.
+        /// </summary>
         public void Stop()
         {
+            // Nếu đã Stop rồi thì không cleanup lần thứ hai.
+            if (Interlocked.Exchange(
+                    ref _stopped,
+                    1) == 1)
+            {
+                return;
+            }
+
             try
             {
-                _stream?.Close();
-                _client?.Close();
+                try
+                {
+                    _stream.Close();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn(
+                        $"[Stream Close Error] {ex.Message}");
+                }
+
+                try
+                {
+                    _client.Close();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn(
+                        $"[Client Close Error] {ex.Message}");
+                }
 
                 Logger.Info(
                     "[ClientSession] Connection closed.");
