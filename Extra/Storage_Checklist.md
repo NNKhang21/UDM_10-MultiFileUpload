@@ -24,9 +24,8 @@ Checklist này dùng để kiểm tra các yêu cầu bắt buộc của phần 
 | 7 | Đối chiếu size thực nhận với size đã báo | Sai lệch phải từ chối upload và rollback `.part` | Đã làm |
 | 8 | Chặn Client khai sai kích thước từng phần dữ liệu | Không cho chunk vượt quá phần dữ liệu còn lại hoặc giới hạn chunk | Đã làm |
 | 9 | Dọn dữ liệu dở dang khi mất kết nối giữa chừng | Rollback/Abort xóa `.part`; việc gọi Abort khi disconnect cần xác nhận ở ClientSession | Đã làm* |
-| 10 | Có thời gian chờ tối đa | Client không gửi gì quá lâu phải bị chủ động ngắt | Chưa làm |
-| 11 | Ghi log khi từ chối 1 file | Lưu lý do validation/upload thất bại để phục vụ kiểm thử | Đã làm |
-| 12 | Chặn tên thiết bị dành riêng của Windows | CON, PRN, AUX, NUL, COM1-9, LPT1-9 bị từ chối | Đã làm |
+| 10 | Ghi log khi từ chối 1 file | Lưu lý do validation/upload thất bại để phục vụ kiểm thử | Đã làm |
+| 11 | Chặn tên thiết bị dành riêng của Windows | CON, PRN, AUX, NUL, COM1-9, LPT1-9 bị từ chối | Đã làm |
 
 \* `FileStorageService` đã có rollback/abort; cần xác nhận integration ở `ClientSession` nếu yêu cầu nghiệm thu là “disconnect tự động gọi Abort”.
 ## Ghi chú
