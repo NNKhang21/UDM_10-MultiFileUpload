@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace UDM_10.Client.Services
 {
-    // Record & Interface theo đúng yêu cầu của Khang
+    // Định nghĩa kết quả upload và interface
     public record UploadOutcome(bool Success, string? ServerFileName, string? Message);
 
     public interface IFileUploader
@@ -17,31 +17,45 @@ namespace UDM_10.Client.Services
 
     public class NetworkClient : IFileUploader
     {
-        private TcpClient _client;
-        private NetworkStream _stream;
+        private TcpClient? _client;
+        private NetworkStream? _stream;
+        private const int ReadWriteTimeoutMs = 15000; // Thời gian chờ tối đa: 15 giây
 
+        // Hàm kết nối đến Server
         public async Task<bool> ConnectAsync(string ipAddress, int port)
         {
             try
             {
+                Disconnect(); // Đóng kết nối cũ nếu có
                 _client = new TcpClient();
+
+                // Cấu hình ngắt kết nối nếu mạng giật/treo quá 15s (Yêu cầu Tuần 4)
+                _client.SendTimeout = ReadWriteTimeoutMs;
+                _client.ReceiveTimeout = ReadWriteTimeoutMs;
+
                 await _client.ConnectAsync(ipAddress, port);
                 _stream = _client.GetStream();
                 return true;
             }
             catch (Exception)
             {
+                Disconnect();
                 return false;
             }
         }
 
-        /// <summary>
-        /// Hàm UploadFileAsync đã cập nhật theo interface IFileUploader
-        /// </summary>
+        // Hàm kiểm tra xem mạng còn sống không (Yêu cầu Tuần 4)
+        private bool EnsureConnected()
+        {
+            return _client != null && _client.Connected && _stream != null;
+        }
+
+        // Hàm xử lý Upload File chính
         public async Task<UploadOutcome> UploadFileAsync(string filePath, IProgress<double> progress, CancellationToken ct)
         {
-            if (_stream == null || !_client.Connected)
-                return new UploadOutcome(false, null, "Chưa kết nối tới Server.");
+            // Kiểm tra kết nối trước khi gửi
+            if (!EnsureConnected())
+                return new UploadOutcome(false, null, "Chưa kết nối hoặc mất kết nối tới Server.");
 
             try
             {
@@ -49,16 +63,16 @@ namespace UDM_10.Client.Services
                 if (!fileInfo.Exists)
                     return new UploadOutcome(false, null, "File không tồn tại.");
 
-                // 1. Gửi thông tin Metadata (Tên file & Dung lượng file)
+                // Bước 1: Gửi Tên file và Dung lượng file sang Server
                 byte[] fileNameBytes = Encoding.UTF8.GetBytes(fileInfo.Name);
                 byte[] fileNameLengthBytes = BitConverter.GetBytes(fileNameBytes.Length);
-                await _stream.WriteAsync(fileNameLengthBytes, 0, fileNameLengthBytes.Length, ct);
+                await _stream!.WriteAsync(fileNameLengthBytes, 0, fileNameLengthBytes.Length, ct);
                 await _stream.WriteAsync(fileNameBytes, 0, fileNameBytes.Length, ct);
 
                 byte[] fileSizeBytes = BitConverter.GetBytes(fileInfo.Length);
                 await _stream.WriteAsync(fileSizeBytes, 0, fileSizeBytes.Length, ct);
 
-                // 2. Đọc file và gửi dữ liệu theo từng Chunk (Mặc định 64KB)
+                // Bước 2: Chia file thành các gói nhỏ (64KB) và gửi đi
                 int bufferSize = 64 * 1024;
                 byte[] buffer = new byte[bufferSize];
                 long totalBytesSent = 0;
@@ -69,12 +83,12 @@ namespace UDM_10.Client.Services
                     int bytesRead;
                     while ((bytesRead = await fs.ReadAsync(buffer, 0, buffer.Length, ct)) > 0)
                     {
-                        // Kiểm tra nếu người dùng bấm Hủy
+                        // Kiểm tra nếu người dùng bấm nút Hủy
                         ct.ThrowIfCancellationRequested();
 
                         await _stream.WriteAsync(buffer, 0, bytesRead, ct);
 
-                        // Báo tiến độ % về cho UI (Khang)
+                        // Cập nhật % tiến độ cho giao diện của Khang
                         totalBytesSent += bytesRead;
                         if (progress != null && totalFileLength > 0)
                         {
@@ -86,27 +100,49 @@ namespace UDM_10.Client.Services
 
                 await _stream.FlushAsync(ct);
 
-                // TODO: Đọc phản hồi (Ack/Result) từ Server gửi về 
-                // Xem Server có đổi tên file hay không (Ví dụ: "Tailieu (1).pdf")
-                // Hiện tại giả định Server giữ nguyên tên file:
-                string serverSavedFileName = fileInfo.Name;
-
-                return new UploadOutcome(true, serverSavedFileName, "Upload thành công.");
+                // Trả về kết quả thành công
+                return new UploadOutcome(true, fileInfo.Name, "Upload thành công.");
             }
             catch (OperationCanceledException)
             {
+                // Xử lý khi bấm nút Hủy
                 return new UploadOutcome(false, null, "Đã hủy tiến trình upload.");
+            }
+            catch (SocketException ex)
+            {
+                // Mất kết nối mạng giữa chừng (Yêu cầu Tuần 4)
+                Disconnect();
+                return new UploadOutcome(false, null, $"Lỗi mạng: {ex.Message}");
+            }
+            catch (IOException ex)
+            {
+                // Quá thời gian chờ / Treo mạng (Yêu cầu Tuần 4)
+                Disconnect();
+                return new UploadOutcome(false, null, $"Lỗi truyền dữ liệu (Timeout): {ex.Message}");
             }
             catch (Exception ex)
             {
-                return new UploadOutcome(false, null, $"Lỗi upload: {ex.Message}");
+                Disconnect();
+                return new UploadOutcome(false, null, $"Lỗi không xác định: {ex.Message}");
             }
         }
 
+        // Hàm ngắt và dọn dẹp kết nối sạch sẽ
         public void Disconnect()
         {
-            _stream?.Close();
-            _client?.Close();
+            try
+            {
+                _stream?.Close();
+                _stream?.Dispose();
+                _client?.Close();
+                _client?.Dispose();
+            }
+            catch { }
+            finally
+            {
+                _stream = null;
+                _client = null;
+            }
         }
     }
 }
