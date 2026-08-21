@@ -188,9 +188,52 @@ private static readonly string[] _windowsReservedNames =
         $"Upload already exists: {start.TransferId}");
         }
 
-        Logger.Info(ServerEvent.UploadStart, "Upload begin",
-            ("fileName", start.FileName), ("transferId", start.TransferId), ("expectedSize", start.FileSize));
+        Logger.Info(ServerEvent.UploadStart, "Upload begin", ("fileName", start.FileName), ("transferId", start.TransferId), ("expectedSize", start.FileSize));
         return Task.CompletedTask;
+    }
+    // ---- GHI CHUNK ----
+    // Giai ma base64, kiem tra thu tu/do dai roi ghi vao file ".part". Loi thi rollback va nem lai loi.
+    public async Task WriteChunkAsync(UploadChunkMessage chunk, CancellationToken ct = default)
+    {
+        if (chunk == null) throw new ArgumentNullException(nameof(chunk));
+        ValidateTransferId(chunk.TransferId);
+        UploadContext context = GetContext(chunk.TransferId);
+        bool locked = false;
+        try
+        {
+            await context.Lock.WaitAsync(ct);
+            locked = true;
+            if (chunk.ChunkIndex != context.NextChunkIndex)
+            throw new InvalidDataException($"Invalid chunk order. Expected={context.NextChunkIndex}, Received={chunk.ChunkIndex}");
+            byte[] buffer;
+            try
+            {
+                buffer = Convert.FromBase64String(chunk.DataBase64);
+            }
+            catch (FormatException) { throw new InvalidDataException("Invalid Base64 data"); }
+
+            if (buffer.Length != chunk.Length) throw new InvalidDataException("Chunk length mismatch");
+            ValidateChunkLength(buffer.Length, context.ExpectedSize - context.ReceivedSize);
+            await context.PartFile.WriteAsync(buffer, ct);
+            context.ReceivedSize += buffer.Length;
+            context.NextChunkIndex++;
+            Logger.Info(ServerEvent.UploadChunk, "Chunk received",("transferId", context.TransferId), ("chunkIndex", chunk.ChunkIndex), ("size", buffer.Length));
+        }
+        catch (OperationCanceledException)
+        {
+            RollbackUpload(context);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ServerEvent.UploadIncomplete, "Upload failed", ("transferId", context.TransferId), ("fileName", context.FileName), ("error", ex.Message));
+            RollbackUpload(context);
+            throw;
+        }
+        finally
+        {
+            if (locked) context.Lock.Release();
+        }
     }
 
 
