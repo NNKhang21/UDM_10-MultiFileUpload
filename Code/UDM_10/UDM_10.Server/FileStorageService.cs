@@ -104,21 +104,19 @@ private static readonly string[] _windowsReservedNames =
         return policy;
     }
 
-private static string NextAvailableName(string targetPath)
-{
-   var uploadFolder = Path.GetDirectoryName(targetPath)!;
-        var nameOnly = Path.GetFileNameWithoutExtension(targetPath);
-        var ext = Path.GetExtension(targetPath);
-        int duplicateIndex = 1;
-        string candidate;
-        do
+     // Tim ten dang "ten(1).ext", "ten(2).ext"... chua bi chiem, thu toi da 1000 lan
+    private static string NextAvailableName(string targetPath)
+    {
+        string folder = Path.GetDirectoryName(targetPath)!;
+        string name = Path.GetFileNameWithoutExtension(targetPath);
+        string ext = Path.GetExtension(targetPath);
+        for (int i = 1; i <= 1000; i++)
         {
-            candidate = Path.Combine(uploadFolder, $"{nameOnly}({duplicateIndex}){ext}");
-            duplicateIndex++;
-        } while (File.Exists(candidate) || File.Exists(candidate + ".part"));     
-       return candidate;
-}
-
+            string candidate = Path.Combine(folder, $"{name}({i}){ext}");
+            if (!File.Exists(candidate) && !File.Exists(candidate + ".part")) return candidate;
+        }
+        throw new IOException("Too many duplicate filename attempts");
+    }
 #region Upload Process
 
     public async Task<string> ReceiveFileAsync(Stream stream, string targetPath, FileStream partFile, long expectedSize, CancellationToken ct, int idleTimeoutMs = 0)
