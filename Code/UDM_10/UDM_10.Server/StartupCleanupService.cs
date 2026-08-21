@@ -42,12 +42,28 @@ public static class StartupCleanupService
         return true;
     }
 
+    // Quet va xoa toan bo file .part mo coi, gap file bi khoa thi bo qua chu khong dung lai
     public static int CleanupPartialFiles(ServerConfig config)
     {
-         // TODO: if UploadDirectory does not exist, return 0
-        // TODO: scan all "*.part" files in UploadDirectory, delete each one,
-        // skip locked files instead of stopping, count how many files were deleted
-        return 0;
+        if (!Directory.Exists(config.UploadDirectory)) return 0;
+        string[] partFiles = Directory.GetFiles(config.UploadDirectory, "*.part");
+        int deletedCount = 0;
+
+        foreach (string partPath in partFiles)
+        {
+            try
+            {
+                File.Delete(partPath);
+                deletedCount++;
+                Logger.Info(ServerEvent.Cleanup, "Cleanup success", ("path", partPath));
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                // File dang bi khoa, bo qua va xu ly file tiep theo
+                Logger.Warn(ServerEvent.Cleanup, "Cleanup fail", ("path", partPath), ("error", ex.Message));
+            }
+        }
+        return deletedCount;
     }
 
     public static int CleanupEmptyFolders(ServerConfig config)
