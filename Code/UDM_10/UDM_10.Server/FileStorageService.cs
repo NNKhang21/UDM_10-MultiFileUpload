@@ -117,58 +117,81 @@ private static readonly string[] _windowsReservedNames =
         }
         throw new IOException("Too many duplicate filename attempts");
     }
-#region Upload Process
-
-    public async Task<string> ReceiveFileAsync(Stream stream, string targetPath, FileStream partFile, long expectedSize, CancellationToken ct, int idleTimeoutMs = 0)
+      // ---- BAT DAU UPLOAD ----
+    // Kiem tra du lieu, tao file ".part" va luu UploadContext theo TransferId.
+    // Tao file la I/O nen lam NGOAI lock, chi lock luc doc/ghi Dictionary de khong giu lock qua lau.
+    public Task BeginUploadAsync(UploadStartMessage start, CancellationToken ct = default)
     {
-        // TODO: loop reading chunks (header + data) until expectedSize is reached,
-        // write to partFile, then VerifyUpload + CompleteUpload,
-        // catch OperationCanceledException / TimeoutException / Exception -> RollbackUpload then rethrow
-        return await Task.FromResult(string.Empty);
-    }
+        if (start == null) throw new ArgumentNullException(nameof(start));
+        ct.ThrowIfCancellationRequested();
+        ValidateTransferId(start.TransferId);
+        ValidateFileName(start.FileName);
+        ValidateFileSize(start.FileSize);
 
-       private async Task<UploadChunkHeader> ReadChunkHeader(Stream stream, CancellationToken ct, int idleTimeoutMs)
+        lock (_lock)
+        {
+            if (_uploads.ContainsKey(start.TransferId))
+                throw new InvalidOperationException($"Upload already exists: {start.TransferId}");
+        }
+
+        string policy = NormalizePolicy();
+        string targetPath;
+        string partPath;
+        FileStream partFile;
+        while (true)
+        {
+            targetPath = ResolveFinalPath(start.FileName);
+            partPath = targetPath + ".part";
+            try
+            {
+                partFile = new FileStream(partPath, FileMode.CreateNew, FileAccess.ReadWrite,
+                    FileShare.None, 64 * 1024, FileOptions.Asynchronous);
+                break;
+            }
+            catch (IOException)
+            {
+                if (!File.Exists(partPath)) throw; // loi khac, khong phai do trung ten
+                if (policy == "RENAME") continue; // trung ten, thu ten khac
+                throw new InvalidOperationException($"File is being uploaded: {start.FileName}");
+            }
+        }
+
+      bool duplicateTransfer = false;
+
+    lock (_lock)
     {
-        var chunkHeaderJson = await MessageFramer.ReadJsonAsync(stream, ct, idleTimeoutMs);
-        return JsonSerializer.Deserialize<UploadChunkHeader>(chunkHeaderJson)
-            ?? throw new InvalidDataException("Bad chunk header");
-    }
-
-    private async Task<byte[]> ReadChunkData(Stream stream, int chunkLength, CancellationToken ct, int idleTimeoutMs)
-     {
-        return await MessageFramer.ReadRawAsync(stream, chunkLength, ct, idleTimeoutMs);
-    }
-
-    private async Task WriteChunkToPartFile(FileStream partFile, byte[] buffer, CancellationToken ct)
+    // Kiem tra TransferId lan nua sau khi tao file
+    if (_uploads.ContainsKey(start.TransferId))
     {
-        // TODO: write buffer to partFile
-        await Task.CompletedTask;
+        duplicateTransfer = true;
     }
-
-    private void VerifyUpload(long receivedSize, long expectedSize)
+    else
     {
-        // TODO: compare receivedSize with expectedSize, throw InvalidDataException if mismatched
+        _uploads.Add(start.TransferId, new UploadContext
+        {
+            TransferId = start.TransferId,
+            FileName = start.FileName,
+            TargetPath = targetPath,
+            PartFile = partFile,
+            ExpectedSize = start.FileSize,
+            OverwriteOnFinish = policy == "OVERWRITE"
+        });
+        }
     }
 
-    private void CompleteUpload(string targetPath)
+        if (duplicateTransfer)
     {
-        // TODO: rename the .part file to the actual targetPath (File.Move, overwrite: true)
+    try { partFile.Dispose(); } catch { }
+    DeletePartialFile(targetPath);
+
+    throw new InvalidOperationException(
+        $"Upload already exists: {start.TransferId}");
+        }
+
+        Logger.Info(ServerEvent.UploadStart, "Upload begin",
+            ("fileName", start.FileName), ("transferId", start.TransferId), ("expectedSize", start.FileSize));
+        return Task.CompletedTask;
     }
 
-    #endregion
 
-    #region Cleanup
-
-    public void RollbackUpload(string targetPath)
-    {
-        // TODO: call DeletePartialFile, log if deletion succeeds
-    }
-
-    public bool DeletePartialFile(string filePath)
-    {
-        // TODO: resolve the .part path, check if it exists, delete if present, catch errors if file is locked
-        return false;
-    }
-
-    #endregion
 }
