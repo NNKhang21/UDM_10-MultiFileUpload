@@ -341,5 +341,45 @@ private static readonly string[] _windowsReservedNames =
             _uploads.Remove(transferId);
         }
     }
-    
+    // Bo khoi _uploads, dong file, xoa ".part". Kiem tra ReferenceEquals de khong xoa nham
+    // context moi neu TransferId nay da duoc dung lai.
+    private void RollbackUpload(UploadContext context)
+    {
+       bool removed = false;
+
+        lock (_lock)
+        {
+       if (_uploads.TryGetValue(context.TransferId, out UploadContext? current))
+         {
+        if (ReferenceEquals(current, context))
+        {
+            _uploads.Remove(context.TransferId);
+            removed = true;
+        }
+    }
+    }
+        if (!removed) return;
+        try { context.PartFile.Dispose(); } catch { }
+        DeletePartialFile(context.TargetPath);
+        Logger.Warn(ServerEvent.Cleanup, "Upload rollback",("transferId", context.TransferId), ("fileName", context.FileName));
+    }
+
+    // Xoa file ".part", dung chung cho cac ham rollback/abort o tren.
+    private bool DeletePartialFile(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath)) return false;
+        string partPath = filePath.EndsWith(".part", StringComparison.OrdinalIgnoreCase) ? filePath : filePath + ".part";
+        if (!File.Exists(partPath)) return false;
+        try
+        {
+            File.Delete(partPath);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            if (!(ex is IOException) && !(ex is UnauthorizedAccessException)) throw;
+            Logger.Warn(ServerEvent.Cleanup, "Could not remove partial file",  ("fileName", Path.GetFileName(partPath)), ("error", ex.Message));
+            return false;
+        }
+    }
 }
