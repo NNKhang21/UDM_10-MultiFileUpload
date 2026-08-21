@@ -30,6 +30,7 @@
         {
             topPanel = new Panel();
             btnUploadAll = new Button();
+            btnUploadSelected = new Button();
             btnTestStatus = new Button();
             btnChooseFiles = new Button();
             dropZone = new Panel();
@@ -49,24 +50,39 @@
             // 
             topPanel.BackColor = Color.AliceBlue;
             topPanel.Controls.Add(btnUploadAll);
+            topPanel.Controls.Add(btnUploadSelected);
             topPanel.Controls.Add(btnTestStatus);
             topPanel.Controls.Add(btnChooseFiles);
             topPanel.Controls.Add(dropZone);
             topPanel.Dock = DockStyle.Top;
             topPanel.Location = new Point(0, 0);
             topPanel.Name = "topPanel";
-            topPanel.Size = new Size(1082, 96);
+            topPanel.Size = new Size(1150, 110);
             topPanel.TabIndex = 0;
             // 
             // btnUploadAll
             // 
-            btnUploadAll.Location = new Point(721, 24);
+            btnUploadAll.Location = new Point(721, 16);
             btnUploadAll.Name = "btnUploadAll";
-            btnUploadAll.Size = new Size(108, 32);
+            btnUploadAll.AutoSize = true;
+            btnUploadAll.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            btnUploadAll.Padding = new Padding(14, 6, 14, 6);
             btnUploadAll.TabIndex = 3;
             btnUploadAll.Text = "Upload tất cả";
             btnUploadAll.UseVisualStyleBackColor = true;
             btnUploadAll.Click += btnUploadAll_Click;
+            // 
+            // btnUploadSelected
+            // 
+            btnUploadSelected.Location = new Point(721, 62);
+            btnUploadSelected.Name = "btnUploadSelected";
+            btnUploadSelected.AutoSize = true;
+            btnUploadSelected.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            btnUploadSelected.Padding = new Padding(14, 6, 14, 6);
+            btnUploadSelected.TabIndex = 4;
+            btnUploadSelected.Text = "Upload đã chọn";
+            btnUploadSelected.UseVisualStyleBackColor = true;
+            btnUploadSelected.Click += btnUploadSelected_Click;
             // 
             // btnTestStatus
             // 
@@ -151,7 +167,6 @@
             gridFiles.Dock = DockStyle.Fill;
             gridFiles.Location = new Point(0, 96);
             gridFiles.Name = "gridFiles";
-            gridFiles.ReadOnly = true;
             gridFiles.RowHeadersVisible = false;
             gridFiles.RowHeadersWidth = 51;
             gridFiles.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
@@ -176,7 +191,7 @@
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1082, 673);
+            ClientSize = new Size(1150, 673);
             Controls.Add(gridFiles);
             Controls.Add(bottomPanel);
             Controls.Add(topPanel);
@@ -202,6 +217,7 @@
         private DataGridView gridFiles;
         private Button btnTestStatus;
         private Button btnUploadAll;
+        private Button btnUploadSelected;
         private Label lblConcurrencyInfo;
         private Label lblQueueStatus;
         private Label lblTotalFiles;

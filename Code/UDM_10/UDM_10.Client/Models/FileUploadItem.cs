@@ -13,6 +13,9 @@ public class FileUploadItem : INotifyPropertyChanged
     // cac file khac dang upload dong thoi. Tao moi moi lan bat dau upload.
     public CancellationTokenSource? Cts { get; set; }
 
+    private bool _isSelected = true;
+    public bool IsSelected { get => _isSelected; set { _isSelected = value; OnChanged(); } }
+
     // Hien "12.0 MB" thay vi so byte tho, dung o cot Size cua DataGridView
     public string FileSizeText => FormatBytes(FileSizeBytes);
 

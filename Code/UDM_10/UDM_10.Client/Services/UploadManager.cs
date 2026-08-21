@@ -96,6 +96,12 @@ public class UploadManager
         var tasks = pending.Select(item => UploadOneFileAsync(item)).ToList();
         await Task.WhenAll(tasks);
     }
+    public async Task UploadSelectedAsync()
+    {
+        var pending = Files.Where(f => f.IsSelected && f.Status == UploadStatus.Waiting).ToList();
+        var tasks = pending.Select(item => UploadOneFileAsync(item)).ToList();
+        await Task.WhenAll(tasks);
+    }
 
     private async Task UploadOneFileAsync(FileUploadItem item)
     {
