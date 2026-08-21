@@ -35,13 +35,12 @@ private static readonly string[] _windowsReservedNames =
         // Rieng cho 1 upload, dung SemaphoreSlim vi phai await luc ghi file 
         public SemaphoreSlim Lock { get; } = new SemaphoreSlim(1, 1);
     }
-    public FileStorageService(ServerConfig config)
+      public FileStorageService(ServerConfig config)
     {
-        _config = config;
+        _config = config ?? throw new ArgumentNullException(nameof(config));
         Directory.CreateDirectory(_config.UploadDirectory);
     }
-
-    #region Validation
+  
 
      public void ValidateFileName(string fileName)
     {
