@@ -77,7 +77,11 @@ private static readonly string[] _windowsReservedNames =
         if (maxChunkBytes <= 0 || declaredLength <= 0 || declaredLength > remainingBytes || declaredLength > maxChunkBytes)
             throw new InvalidDataException($"Invalid chunk length {declaredLength} (remaining {remainingBytes})");
     }
-
+    private static void ValidateTransferId(string transferId)
+    {
+        if (string.IsNullOrWhiteSpace(transferId)) 
+        throw new ArgumentException("Invalid transfer id", nameof(transferId));
+    }
 
     #region Upload Preparation
 
