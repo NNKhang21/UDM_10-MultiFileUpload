@@ -70,9 +70,12 @@ private static readonly string[] _windowsReservedNames =
         if (fileSize <= 0 || fileSize > maxBytes)
             throw new ArgumentException($"Invalid file size: {fileSize} (max {maxBytes} bytes)");
     }
+    // declaredLength khong duoc vuot qua phan con lai hoac ChunkSizeKb da cau hinh
     public void ValidateChunkLength(long declaredLength, long remainingBytes)
     {
-        // TODO: check declaredLength <= 0 or greater than remainingBytes
+        long maxChunkBytes = (long)_config.ChunkSizeKb * 1024;
+        if (maxChunkBytes <= 0 || declaredLength <= 0 || declaredLength > remainingBytes || declaredLength > maxChunkBytes)
+            throw new InvalidDataException($"Invalid chunk length {declaredLength} (remaining {remainingBytes})");
     }
 
 
