@@ -33,7 +33,7 @@ namespace UDM_10.Client
             InitializeComponent();
             StylePrimaryButton(btnUploadAll);
             StyleSecondaryButton(btnUploadSelected);
-            StyleSecondaryButton(btnChooseFiles);
+            StyleLinkButton(btnChooseFiles);
             StyleSecondaryButton(btnTestStatus);
 
             topPanel.Controls.Add(chkSimulateError);
@@ -50,10 +50,10 @@ namespace UDM_10.Client
             gridFiles.CellBorderStyle = DataGridViewCellBorderStyle.Single;
             gridFiles.GridColor = BorderColor;
             gridFiles.RowTemplate.Height = 42;
-            gridFiles.BackgroundColor = Color.White;
+            gridFiles.BackgroundColor = Color.FloralWhite;
             gridFiles.Font = new Font("Segoe UI", 9.5f);
 
-            gridFiles.ColumnHeadersDefaultCellStyle.BackColor = Color.White;
+            gridFiles.ColumnHeadersDefaultCellStyle.BackColor = Color.FloralWhite;
             gridFiles.ColumnHeadersDefaultCellStyle.ForeColor = TextMutedColor;
             gridFiles.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
             gridFiles.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
@@ -209,6 +209,15 @@ namespace UDM_10.Client
             btn.Cursor = Cursors.Hand;
             btn.MouseEnter += (s, e) => btn.BackColor = Color.FromArgb(243, 244, 246);
             btn.MouseLeave += (s, e) => btn.BackColor = Color.White;
+        }
+        private void StyleLinkButton(Button btn)
+        {
+            btn.FlatStyle = FlatStyle.Flat;
+            btn.FlatAppearance.BorderSize = 0;
+            btn.BackColor = Color.White;
+            btn.ForeColor = AccentColor;
+            btn.Font = new Font("Segoe UI", 9f, FontStyle.Underline);
+            btn.Cursor = Cursors.Hand;
         }
         private async void btnUploadSelected_Click(object sender, EventArgs e)
         {
@@ -405,6 +414,14 @@ namespace UDM_10.Client
             path.AddArc(bounds.X, bounds.Bottom - d, d, d, 90, 90);
             path.CloseFigure();
             return path;
+        }
+        private void dropZone_Paint(object? sender, PaintEventArgs e)
+        {
+            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            var rect = new Rectangle(1, 1, dropZone.Width - 3, dropZone.Height - 3);
+            using var path = RoundedRect(rect, 10);
+            using var dashPen = new Pen(BorderColor, 1.5f) { DashStyle = System.Drawing.Drawing2D.DashStyle.Dash };
+            e.Graphics.DrawPath(dashPen, path);
         }
         private async void btnUploadAll_Click(object sender, EventArgs e)
         {
