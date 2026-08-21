@@ -48,7 +48,7 @@ namespace UDM_10.Client
             gridFiles.EnableHeadersVisualStyles = false;
             gridFiles.BorderStyle = BorderStyle.None;
             gridFiles.CellBorderStyle = DataGridViewCellBorderStyle.Single;
-            gridFiles.GridColor = BorderColor;
+            gridFiles.GridColor = Color.FromArgb(200, 205, 210);
             gridFiles.RowTemplate.Height = 42;
             gridFiles.BackgroundColor = Color.FloralWhite;
             gridFiles.Font = new Font("Segoe UI", 9.5f);
@@ -127,24 +127,24 @@ namespace UDM_10.Client
             gridFiles.Columns.Add(new DataGridViewButtonColumn
             {
                 Name = "colCancel",
-                HeaderText = "",
-                Text = "Hủy",
+                HeaderText = "Hủy",
+                Text = "✕",
                 UseColumnTextForButtonValue = true,
                 Width = 70
             });
             gridFiles.Columns.Add(new DataGridViewButtonColumn
             {
                 Name = "colRetry",
-                HeaderText = "",
-                Text = "Thử lại",
+                HeaderText = "Thử lại",
+                Text = "🔄",
                 UseColumnTextForButtonValue = true,
                 Width = 80
             });
             gridFiles.Columns.Add(new DataGridViewButtonColumn
             {
                 Name = "colDelete",
-                HeaderText = "",
-                Text = "Xóa",
+                HeaderText = "Xóa",
+                Text = "🗑️",
                 UseColumnTextForButtonValue = true,
                 Width = 70
             });
