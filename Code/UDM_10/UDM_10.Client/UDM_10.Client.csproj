@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Folder Include="Server\Protocol\" />
     <Folder Include="Shared\" />
   </ItemGroup>
 
