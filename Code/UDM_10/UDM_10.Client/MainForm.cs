@@ -300,6 +300,40 @@ namespace UDM_10.Client
             var g = e.Graphics;
             string colName = gridFiles.Columns[e.ColumnIndex].DataPropertyName;
 
+            if (colName == nameof(FileUploadItem.FileName))
+            {
+                e.PaintBackground(e.CellBounds, true);
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+
+                string ext = System.IO.Path.GetExtension(item.FileName).ToLowerInvariant();
+                var (tagColor, tagText) = ext switch
+                {
+                    ".doc" or ".docx" => (Color.FromArgb(37, 99, 235), "DOC"),
+                    ".ppt" or ".pptx" => (Color.FromArgb(220, 38, 38), "PPT"),
+                    ".xls" or ".xlsx" => (Color.FromArgb(22, 163, 74), "XLS"),
+                    _ => (Color.FromArgb(107, 114, 128), ext.TrimStart('.').ToUpperInvariant())
+                };
+                if (tagText.Length > 4) tagText = tagText.Substring(0, 4);
+
+                int tagWidth = 40;
+                int tagHeight = 20;
+                int tagY = e.CellBounds.Y + (e.CellBounds.Height - tagHeight) / 2;
+                var tagRect = new Rectangle(e.CellBounds.X + 4, tagY, tagWidth, tagHeight);
+
+                using var tagPath = RoundedRect(tagRect, 4);
+                using var tagBrush = new SolidBrush(tagColor);
+                g.FillPath(tagBrush, tagPath);
+                TextRenderer.DrawText(g, tagText, new Font("Segoe UI", 7.5f, FontStyle.Bold),
+                    tagRect, Color.White, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+
+                var textRect = new Rectangle(tagRect.Right + 8, e.CellBounds.Y, e.CellBounds.Width - tagWidth - 16, e.CellBounds.Height);
+                TextRenderer.DrawText(g, item.FileName, e.CellStyle!.Font, textRect, TextDarkColor,
+                    TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
+
+                e.Handled = true;
+                return;
+            }
+
             if (colName == nameof(FileUploadItem.StatusLabel))
             {
                 e.PaintBackground(e.CellBounds, true);
