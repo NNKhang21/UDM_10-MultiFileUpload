@@ -61,12 +61,10 @@
             // 
             // btnUploadAll
             // 
-            btnUploadAll.AutoSize = true;
-            btnUploadAll.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             btnUploadAll.Location = new Point(605, 16);
             btnUploadAll.Name = "btnUploadAll";
-            btnUploadAll.Padding = new Padding(14, 6, 14, 6);
-            btnUploadAll.Size = new Size(137, 42);
+            btnUploadAll.Padding = new Padding(6, 2, 6, 2);
+            btnUploadAll.Size = new Size(143, 42);
             btnUploadAll.TabIndex = 3;
             btnUploadAll.Text = "Upload tất cả";
             btnUploadAll.UseVisualStyleBackColor = true;
@@ -74,12 +72,10 @@
             // 
             // btnUploadSelected
             // 
-            btnUploadSelected.AutoSize = true;
-            btnUploadSelected.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            btnUploadSelected.Location = new Point(605, 62);
+            btnUploadSelected.Location = new Point(605, 60);
             btnUploadSelected.Name = "btnUploadSelected";
-            btnUploadSelected.Padding = new Padding(14, 6, 14, 6);
-            btnUploadSelected.Size = new Size(153, 42);
+            btnUploadSelected.Padding = new Padding(6, 2, 6, 2);
+            btnUploadSelected.Size = new Size(143, 42);
             btnUploadSelected.TabIndex = 4;
             btnUploadSelected.Text = "Upload đã chọn";
             btnUploadSelected.UseVisualStyleBackColor = true;
@@ -202,7 +198,6 @@
             StartPosition = FormStartPosition.CenterScreen;
             Text = "UDM_10-MultiFileUpload";
             topPanel.ResumeLayout(false);
-            topPanel.PerformLayout();
             dropZone.ResumeLayout(false);
             dropZone.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)gridFiles).EndInit();
