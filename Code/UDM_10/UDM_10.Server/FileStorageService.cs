@@ -8,19 +8,20 @@ using UDM_10.Shared.Config;
 using UDM_10.Shared.Models;
 using UDM_10.Shared.Protocol;
 namespace UDM_10.Server;
-// Week 3 - Duplicate handling & upload target reservation
 public class FileStorageService
 {
     private const int MaxFileNameLength = 255;
 
 private static readonly string[] _windowsReservedNames =
 {
-    "CON","PRN","AUX","NUL",  "COM1",  "COM2","COM3","COM4", "COM5","COM6", "COM7", "COM8",
-    "COM9", "LPT1",  "LPT2",  "LPT3", "LPT4",  "LPT5",  "LPT6", "LPT7", "LPT8", "LPT9"
+    "CON","PRN","AUX","NUL",  "COM1",  "COM2","COM3","COM4", "COM5","COM6", "COM7", "COM8", "COM9", 
+    "LPT1",  "LPT2",  "LPT3", "LPT4",  "LPT5",  "LPT6", "LPT7", "LPT8", "LPT9"
 };
-    private static readonly SemaphoreSlim _nameLock = new(1, 1);
-
-    private readonly ServerConfig _config;
+      private readonly ServerConfig _config;
+    // Khoa de dung chung Dictionary _uploads cho an toan
+    private readonly object _lock = new object();
+    // Danh sach cac upload dang chay, key la TransferId
+    private readonly Dictionary<string, UploadContext> _uploads = new Dictionary<string, UploadContext>(StringComparer.OrdinalIgnoreCase);
 
     public FileStorageService(ServerConfig config)
     {
