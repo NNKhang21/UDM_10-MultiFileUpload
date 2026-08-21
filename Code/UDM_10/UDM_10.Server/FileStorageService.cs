@@ -294,4 +294,52 @@ private static readonly string[] _windowsReservedNames =
             if (locked) context.Lock.Release();
         }
     }
+    // ---- HUY, DON DEP ----
+    // Cho ClientSession chu dong huy 1 upload dang do dang, vi du khi Client mat ket noi.
+    public bool AbortUpload(string transferId)
+    {
+        ValidateTransferId(transferId);
+        UploadContext? context;
+        lock (_lock)
+        {
+            if (!_uploads.TryGetValue(transferId, out context)) return false;
+        }
+        context.Lock.Wait();
+        try
+        {
+            lock (_lock)
+            {
+                if (!_uploads.TryGetValue(transferId, out UploadContext? current) ||
+                    !ReferenceEquals(current, context)) return false;
+                _uploads.Remove(transferId);
+            }
+            try { context.PartFile.Dispose(); } catch { }
+            DeletePartialFile(context.TargetPath);
+            Logger.Warn(ServerEvent.UploadIncomplete, "Upload aborted", ("transferId", transferId), ("fileName", context.FileName));
+            return true;
+        }
+        finally
+        {
+            context.Lock.Release();
+        }
+    }
+
+    private UploadContext GetContext(string transferId)
+    {
+        lock (_lock)
+        {
+            if (!_uploads.TryGetValue(transferId, out UploadContext? context))
+                throw new InvalidOperationException($"Upload not found: {transferId}");
+            return context;
+        }
+    }
+
+    private void RemoveContext(string transferId)
+    {
+        lock (_lock)
+        {
+            _uploads.Remove(transferId);
+        }
+    }
+    
 }
