@@ -48,7 +48,7 @@
             // 
             // topPanel
             // 
-            topPanel.BackColor = Color.AliceBlue;
+            topPanel.BackColor = Color.FromArgb(198, 226, 255);
             topPanel.Controls.Add(btnUploadAll);
             topPanel.Controls.Add(btnUploadSelected);
             topPanel.Controls.Add(btnTestStatus);
@@ -176,7 +176,7 @@
             // 
             // bottomPanel
             // 
-            bottomPanel.BackColor = Color.AliceBlue;
+            bottomPanel.BackColor = Color.FromArgb(198, 226, 255);
             bottomPanel.Controls.Add(lblQueueStatus);
             bottomPanel.Controls.Add(lblTotalFiles);
             bottomPanel.Controls.Add(lblConcurrencyInfo);
