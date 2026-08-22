@@ -238,62 +238,73 @@ private static readonly string[] _windowsReservedNames =
 
     // ---- KET THUC UPLOAD ----
     // Chi doi ten ".part" thanh ten that khi da nhan DU dung luong. Loi thi tra ve false, khong throw.
-    public async Task<bool> FinishUploadAsync(UploadDoneMessage done, CancellationToken ct = default)
+    public async Task<(bool Success, string FinalFileName)> FinishUploadAsync(
+    UploadDoneMessage done,
+    CancellationToken ct = default)
+{
+    if (done == null) throw new ArgumentNullException(nameof(done));
+    ValidateTransferId(done.TransferId);
+
+    UploadContext context = GetContext(done.TransferId);
+    bool locked = false;
+    try
     {
-        if (done == null) throw new ArgumentNullException(nameof(done));
-        ValidateTransferId(done.TransferId);
-        UploadContext context = GetContext(done.TransferId);
-        bool locked = false;
-        try
-        {
-            await context.Lock.WaitAsync(ct);
-            locked = true;
-            if (!string.Equals(done.FileName, context.FileName, StringComparison.Ordinal))
-                throw new InvalidDataException("UploadDone filename mismatch");
-            if (context.ReceivedSize != context.ExpectedSize) 
+        await context.Lock.WaitAsync(ct);
+        locked = true;
+        if (!string.Equals(done.FileName, context.FileName, StringComparison.Ordinal))
+            throw new InvalidDataException("UploadDone filename mismatch");
+        if (context.ReceivedSize != context.ExpectedSize)
             throw new InvalidDataException("Incomplete upload");
 
-            await context.PartFile.FlushAsync(ct);
-            context.PartFile.Dispose();
-            try
-            {
-                File.Move(context.TargetPath + ".part", context.TargetPath, context.OverwriteOnFinish);
-            }
-            catch (Exception ex)
-            {
-                if (!(ex is IOException) && !(ex is UnauthorizedAccessException)) throw;
-                RemoveContext(context.TransferId);
-                DeletePartialFile(context.TargetPath);
-                Logger.Error(ServerEvent.UploadIncomplete, "Final file move failed; upload rolled back", ("transferId", context.TransferId), ("fileName", context.FileName), ("error", ex.Message));
-                return false;
-            }
+        await context.PartFile.FlushAsync(ct);
+        context.PartFile.Dispose();
 
-            RemoveContext(context.TransferId);
-            Logger.Info(ServerEvent.UploadComplete, "Upload finish",("transferId", context.TransferId), ("fileName", context.FileName), ("size", context.ReceivedSize));
-            return true;
-        }
-        catch (InvalidDataException ex)
+        try
         {
-            Logger.Error(ServerEvent.UploadIncomplete, "Upload validation failed",  ("transferId", context.TransferId), ("fileName", context.FileName), ("error", ex.Message));
-            RollbackUpload(context);
-            return false;
-        }
-        catch (OperationCanceledException)
-        {
-            RollbackUpload(context);
-            throw;
+            File.Move(
+                context.TargetPath + ".part",
+                context.TargetPath,
+                context.OverwriteOnFinish);
         }
         catch (Exception ex)
         {
-            Logger.Error(ServerEvent.UploadIncomplete, "Upload failed",("transferId", context.TransferId), ("fileName", context.FileName), ("error", ex.Message));
-            RollbackUpload(context);
-            throw;
+            if (!(ex is IOException) && !(ex is UnauthorizedAccessException))
+                throw;
+            RemoveContext(context.TransferId);
+            DeletePartialFile(context.TargetPath);
+            Logger.Error(ServerEvent.UploadIncomplete,"Final file move failed; upload rolled back",("transferId", context.TransferId),("fileName", context.FileName),("error", ex.Message));
+
+            return (false, string.Empty);
         }
-        finally
-        {
-            if (locked) context.Lock.Release();
-        }
+        string finalFileName = Path.GetFileName(context.TargetPath);
+        RemoveContext(context.TransferId);
+
+        Logger.Info( ServerEvent.UploadComplete, "Upload finish", ("transferId", context.TransferId),("fileName", finalFileName), ("size", context.ReceivedSize));
+        return (true, finalFileName);
     }
+    catch (InvalidDataException ex)
+    {
+        Logger.Error(  ServerEvent.UploadIncomplete, "Upload validation failed",("transferId", context.TransferId),("fileName", context.FileName), ("error", ex.Message));
+        RollbackUpload(context);
+        return (false, string.Empty);
+    }
+    catch (OperationCanceledException)
+    {
+        RollbackUpload(context);
+        throw;
+    }
+    catch (Exception ex)
+    {
+        Logger.Error(ServerEvent.UploadIncomplete, "Upload failed", ("transferId", context.TransferId),("fileName", context.FileName), ("error", ex.Message));
+        RollbackUpload(context);
+        throw;
+    }
+    finally
+    {
+        if (locked)
+            context.Lock.Release();
+    }
+}
     // ---- HUY, DON DEP ----
     // Cho ClientSession chu dong huy 1 upload dang do dang, vi du khi Client mat ket noi.
     public bool AbortUpload(string transferId)
