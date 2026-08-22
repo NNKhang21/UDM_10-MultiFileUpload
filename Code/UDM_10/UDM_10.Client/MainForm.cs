@@ -46,7 +46,7 @@ namespace UDM_10.Client
             gridFiles.AutoGenerateColumns = false;
             gridFiles.ReadOnly = false;
             gridFiles.EnableHeadersVisualStyles = false;
-            gridFiles.BorderStyle = BorderStyle.None;
+            gridFiles.GridColor = Color.FromArgb(180, 185, 196);
             gridFiles.CellBorderStyle = DataGridViewCellBorderStyle.Single;
             gridFiles.GridColor = Color.FromArgb(200, 205, 210);
             gridFiles.RowTemplate.Height = 42;
@@ -58,8 +58,7 @@ namespace UDM_10.Client
             gridFiles.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 10f, FontStyle.Bold);
             gridFiles.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
             gridFiles.ColumnHeadersHeight = 40;
-            gridFiles.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
-
+            gridFiles.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
             gridFiles.DefaultCellStyle.SelectionBackColor = AccentSoftColor;
             gridFiles.DefaultCellStyle.SelectionForeColor = TextDarkColor;
             gridFiles.DefaultCellStyle.ForeColor = TextDarkColor;
@@ -417,11 +416,16 @@ namespace UDM_10.Client
         }
         private void dropZone_Paint(object? sender, PaintEventArgs e)
         {
+            var rect = new Rectangle(0, 0, dropZone.Width, dropZone.Height);
+            using var clipPath = RoundedRect(rect, 12);
+            dropZone.Region = new Region(clipPath); 
+
             e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            var rect = new Rectangle(1, 1, dropZone.Width - 3, dropZone.Height - 3);
-            using var path = RoundedRect(rect, 10);
-            using var dashPen = new Pen(BorderColor, 1.5f) { DashStyle = System.Drawing.Drawing2D.DashStyle.Dash };
-            e.Graphics.DrawPath(dashPen, path);
+            var borderRect = new Rectangle(1, 1, dropZone.Width - 3, dropZone.Height - 3);
+            using var borderPath = RoundedRect(borderRect, 12);
+            using var dashPen = new Pen(Color.FromArgb(150, 155, 170), 1.5f)
+            { DashStyle = System.Drawing.Drawing2D.DashStyle.Dash };
+            e.Graphics.DrawPath(dashPen, borderPath);
         }
         private async void btnUploadAll_Click(object sender, EventArgs e)
         {
