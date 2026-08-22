@@ -6,9 +6,9 @@ namespace UDM_10.Shared.Models
 
 {
 
-    // Base class dùng chung cho tất cả message trao đổi
+    // Base class dùng chung cho tất cả message
 
-    // giữa Client và Server.
+    // trao đổi giữa Client và Server
 
     public abstract class MessageBase
 
@@ -18,7 +18,7 @@ namespace UDM_10.Shared.Models
 
     }
 
-    // Client gửi yêu cầu bắt đầu upload file
+    // Client bắt đầu upload file
 
     public class UploadStartMessage : MessageBase
 
@@ -32,9 +32,7 @@ namespace UDM_10.Shared.Models
 
         }
 
-        // ID riêng cho từng lượt upload.
-
-        // Dùng để phân biệt nhiều file upload cùng lúc.
+        // ID riêng cho từng lượt upload
 
         public string TransferId { get; set; } = string.Empty;
 
@@ -44,7 +42,7 @@ namespace UDM_10.Shared.Models
 
     }
 
-    // Client gửi từng phần dữ liệu của file
+    // Client gửi từng phần dữ liệu file
 
     public class UploadChunkMessage : MessageBase
 
@@ -62,21 +60,21 @@ namespace UDM_10.Shared.Models
 
         public string TransferId { get; set; } = string.Empty;
 
-        // Thứ tự chunk
+        // Số thứ tự chunk
 
         public int ChunkIndex { get; set; }
 
-        // Số byte dữ liệu thực tế trong chunk
+        // Số byte dữ liệu thực tế
 
         public int DataLength { get; set; }
 
-        // Dữ liệu file được encode Base64
+        // Dữ liệu file Base64
 
         public string DataBase64 { get; set; } = string.Empty;
 
     }
 
-    // Client báo đã gửi xong file
+    // Client báo hoàn thành upload
 
     public class UploadDoneMessage : MessageBase
 
@@ -102,7 +100,7 @@ namespace UDM_10.Shared.Models
 
     {
 
-        // Constructor mặc định phục vụ deserialize JSON
+        // Constructor cho JSON deserialize
 
         public AckMessage()
 
@@ -132,13 +130,11 @@ namespace UDM_10.Shared.Models
 
             Type = type;
 
-            // Dùng UTC để tránh lỗi múi giờ
-
             Timestamp = DateTime.UtcNow;
 
         }
 
-        // Đối chiếu ACK với đúng upload
+        // Xác định ACK thuộc upload nào
 
         public string TransferId { get; set; } = string.Empty;
 
@@ -160,16 +156,30 @@ namespace UDM_10.Shared.Models
 
         }
 
+        // ID của lượt upload
+
         public string TransferId { get; set; } = string.Empty;
 
+        // Upload thành công hay thất bại
+
         public bool IsSuccess { get; set; }
-       public string Message { get; set; } = string.Empty;
+
+        // Tên file thật trên Server
+
+        // Ví dụ:
+
+        // Client gửi abc.txt
+        // Server đổi thành abc_1.txt
+
+        public string ServerFileName { get; set; } = string.Empty;
+
+        // Nội dung thông báo
+
+        public string Message { get; set; } = string.Empty;
 
     }
 
-    // Message báo lỗi protocol/network
-
-    // Dùng cho Tuần 4
+    // Message báo lỗi Protocol / Network
 
     public class ErrorMessage : MessageBase
 
@@ -191,4 +201,4 @@ namespace UDM_10.Shared.Models
 
     }
 
-} 
+}
