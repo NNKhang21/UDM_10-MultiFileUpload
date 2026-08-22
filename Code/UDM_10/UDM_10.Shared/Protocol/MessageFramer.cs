@@ -23,18 +23,24 @@ namespace UDM_10.Shared.Protocol
         {
             string json = Serialize(message);
 
-            byte[] payload = Encoding.UTF8.GetBytes(json);
+            byte[] payload =
+                Encoding.UTF8.GetBytes(json);
 
-            byte[] lengthPrefix = BitConverter.GetBytes(payload.Length);
+            byte[] lengthPrefix =
+                BitConverter.GetBytes(payload.Length);
 
             if (BitConverter.IsLittleEndian)
             {
                 Array.Reverse(lengthPrefix);
             }
 
-            await stream.WriteAsync(lengthPrefix, token);
+            await stream.WriteAsync(
+                lengthPrefix,
+                token);
 
-            await stream.WriteAsync(payload, token);
+            await stream.WriteAsync(
+                payload,
+                token);
 
             await stream.FlushAsync(token);
         }
@@ -73,13 +79,16 @@ namespace UDM_10.Shared.Protocol
         // READ MESSAGE
         // =========================================================
 
-        // Đọc một message JSON hoàn chỉnh rồi deserialize thành MessageBase.
+        // Đọc một message JSON hoàn chỉnh
+        // rồi deserialize thành MessageBase.
         public static async Task<MessageBase?> ReadAsync(
             Stream stream,
             CancellationToken token)
         {
             string? json =
-                await ReadJsonAsync(stream, token);
+                await ReadJsonAsync(
+                    stream,
+                    token);
 
             if (json == null)
             {
@@ -175,7 +184,7 @@ namespace UDM_10.Shared.Protocol
             ValidateIdleTimeout(idleTimeoutMs);
 
             byte[]? lengthBytes =
-                await ReadExactAsync(
+                await ReadWithIdleTimeoutAsync(
                     stream,
                     4,
                     token,
@@ -208,7 +217,7 @@ namespace UDM_10.Shared.Protocol
             }
 
             byte[]? payload =
-                await ReadExactAsync(
+                await ReadWithIdleTimeoutAsync(
                     stream,
                     length,
                     token,
@@ -261,7 +270,7 @@ namespace UDM_10.Shared.Protocol
                 return Array.Empty<byte>();
             }
 
-            return await ReadExactAsync(
+            return await ReadWithIdleTimeoutAsync(
                 stream,
                 length,
                 token,
@@ -279,7 +288,15 @@ namespace UDM_10.Shared.Protocol
             int count,
             CancellationToken token)
         {
-            byte[] buffer = new byte[count];
+            if (count < 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(count),
+                    "Số byte cần đọc không được âm.");
+            }
+
+            byte[] buffer =
+                new byte[count];
 
             int offset = 0;
 
@@ -310,10 +327,12 @@ namespace UDM_10.Shared.Protocol
         }
 
         // =========================================================
-        // READ EXACT - CÓ IDLE TIMEOUT
+        // READ WITH IDLE TIMEOUT
         // =========================================================
 
-        private static async Task<byte[]?> ReadExactAsync(
+        // Đọc đủ số byte yêu cầu.
+        // Mỗi lần nhận được dữ liệu sẽ bắt đầu lại idle timeout.
+        private static async Task<byte[]?> ReadWithIdleTimeoutAsync(
             Stream stream,
             int count,
             CancellationToken token,
@@ -321,15 +340,20 @@ namespace UDM_10.Shared.Protocol
         {
             ValidateIdleTimeout(idleTimeoutMs);
 
-            byte[] buffer = new byte[count];
+            if (count < 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(count),
+                    "Số byte cần đọc không được âm.");
+            }
+
+            byte[] buffer =
+                new byte[count];
 
             int offset = 0;
 
             while (offset < count)
             {
-                // Mỗi lần ReadAsync có một khoảng timeout riêng.
-                // Khi vừa nhận được dữ liệu, vòng lặp tiếp theo
-                // sẽ bắt đầu lại thời gian idle timeout.
                 using CancellationTokenSource timeoutCts =
                     CancellationTokenSource.CreateLinkedTokenSource(token);
 
@@ -430,38 +454,94 @@ namespace UDM_10.Shared.Protocol
         // DESERIALIZE
         // =========================================================
 
+        // Deserialize JSON thành message.
+        // Nếu dữ liệu sai cấu trúc thì trả lỗi rõ ràng.
         private static MessageBase Deserialize(
             string json)
         {
-            using JsonDocument doc =
-                JsonDocument.Parse(json);
-
-            MessageType type =
-                (MessageType)doc.RootElement
-                    .GetProperty("Type")
-                    .GetInt32();
-
-            return type switch
+            try
             {
-                MessageType.UploadStart =>
-                    JsonSerializer.Deserialize<UploadStartMessage>(json)!,
+                if (string.IsNullOrWhiteSpace(json))
+                {
+                    throw new InvalidDataException(
+                        "Dữ liệu Protocol không hợp lệ: JSON rỗng.");
+                }
 
-                MessageType.UploadChunk =>
-                    JsonSerializer.Deserialize<UploadChunkMessage>(json)!,
+                using JsonDocument doc =
+                    JsonDocument.Parse(json);
 
-                MessageType.UploadDone =>
-                    JsonSerializer.Deserialize<UploadDoneMessage>(json)!,
+                if (doc.RootElement.ValueKind != JsonValueKind.Object)
+                {
+                    throw new InvalidDataException(
+                        "Dữ liệu Protocol không hợp lệ: JSON phải là một object.");
+                }
 
-                MessageType.UploadStartAck or
-                MessageType.UploadChunkAck =>
-                    JsonSerializer.Deserialize<AckMessage>(json)!,
+                if (!doc.RootElement.TryGetProperty(
+                        "Type",
+                        out JsonElement typeElement))
+                {
+                    throw new InvalidDataException(
+                        "Dữ liệu Protocol không hợp lệ: thiếu trường 'Type'.");
+                }
 
-                MessageType.UploadResult =>
-                    JsonSerializer.Deserialize<UploadResultMessage>(json)!,
+                if (typeElement.ValueKind != JsonValueKind.Number ||
+                    !typeElement.TryGetInt32(out int typeValue))
+                {
+                    throw new InvalidDataException(
+                        "Dữ liệu Protocol không hợp lệ: trường 'Type' phải là số nguyên.");
+                }
 
-                _ => throw new NotSupportedException(
-                    $"Không hỗ trợ deserialize MessageType {type}")
-            };
+                MessageType type =
+                    (MessageType)typeValue;
+
+                MessageBase? message =
+                    type switch
+                    {
+                        MessageType.UploadStart =>
+                            JsonSerializer.Deserialize<UploadStartMessage>(
+                                json),
+
+                        MessageType.UploadChunk =>
+                            JsonSerializer.Deserialize<UploadChunkMessage>(
+                                json),
+
+                        MessageType.UploadDone =>
+                            JsonSerializer.Deserialize<UploadDoneMessage>(
+                                json),
+
+                        MessageType.UploadStartAck or
+                        MessageType.UploadChunkAck =>
+                            JsonSerializer.Deserialize<AckMessage>(
+                                json),
+
+                        MessageType.UploadResult =>
+                            JsonSerializer.Deserialize<UploadResultMessage>(
+                                json),
+
+                        _ => throw new InvalidDataException(
+                            $"Dữ liệu Protocol không hợp lệ: MessageType không được hỗ trợ ({typeValue}).")
+                    };
+
+                if (message == null)
+                {
+                    throw new InvalidDataException(
+                        "Dữ liệu Protocol không hợp lệ: không thể deserialize message.");
+                }
+
+                return message;
+            }
+            catch (JsonException ex)
+            {
+                throw new InvalidDataException(
+                    "Dữ liệu Protocol không hợp lệ: JSON sai cấu trúc.",
+                    ex);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                throw new InvalidDataException(
+                    "Dữ liệu Protocol không hợp lệ: thiếu trường bắt buộc.",
+                    ex);
+            }
         }
     }
 }
