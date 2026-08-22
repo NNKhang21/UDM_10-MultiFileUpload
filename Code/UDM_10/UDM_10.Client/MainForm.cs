@@ -54,8 +54,8 @@ namespace UDM_10.Client
             gridFiles.Font = new Font("Segoe UI", 9.5f);
 
             gridFiles.ColumnHeadersDefaultCellStyle.BackColor = Color.FloralWhite;
-            gridFiles.ColumnHeadersDefaultCellStyle.ForeColor = TextMutedColor;
-            gridFiles.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+            gridFiles.ColumnHeadersDefaultCellStyle.ForeColor = TextDarkColor;
+            gridFiles.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 10f, FontStyle.Bold);
             gridFiles.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
             gridFiles.ColumnHeadersHeight = 40;
             gridFiles.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
