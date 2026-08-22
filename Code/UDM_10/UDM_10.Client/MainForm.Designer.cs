@@ -32,23 +32,23 @@
             btnUploadAll = new Button();
             btnUploadSelected = new Button();
             btnTestStatus = new Button();
+            dropZone = new Panel();
+            dropLabel = new Label();
+            btnChooseFiles = new Button();
             lblQueueStatus = new Label();
             lblTotalFiles = new Label();
             lblConcurrencyInfo = new Label();
             gridFiles = new DataGridView();
             bottomPanel = new Panel();
-            btnChooseFiles = new Button();
-            dropLabel = new Label();
-            dropZone = new Panel();
             topPanel.SuspendLayout();
+            dropZone.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)gridFiles).BeginInit();
             bottomPanel.SuspendLayout();
-            dropZone.SuspendLayout();
             SuspendLayout();
             // 
             // topPanel
             // 
-            topPanel.BackColor = Color.FromArgb(198, 226, 255);
+            topPanel.BackColor = Color.FromArgb(142, 229, 238);
             topPanel.Controls.Add(btnUploadAll);
             topPanel.Controls.Add(btnUploadSelected);
             topPanel.Controls.Add(btnTestStatus);
@@ -91,6 +91,41 @@
             btnTestStatus.UseVisualStyleBackColor = true;
             btnTestStatus.Click += btnTestStatus_Click;
             // 
+            // dropZone
+            // 
+            dropZone.AllowDrop = true;
+            dropZone.BackColor = Color.White;
+            dropZone.Controls.Add(dropLabel);
+            dropZone.Controls.Add(btnChooseFiles);
+            dropZone.Location = new Point(0, 0);
+            dropZone.Name = "dropZone";
+            dropZone.Size = new Size(420, 96);
+            dropZone.TabIndex = 0;
+            dropZone.DragDrop += dropZone_DragDrop;
+            dropZone.DragEnter += dropZone_DragEnter;
+            dropZone.Paint += dropZone_Paint;
+            // 
+            // dropLabel
+            // 
+            dropLabel.Location = new Point(0, 28);
+            dropLabel.Name = "dropLabel";
+            dropLabel.Size = new Size(420, 24);
+            dropLabel.TabIndex = 0;
+            dropLabel.Text = "Kéo && thả file vào đây";
+            dropLabel.TextAlign = ContentAlignment.MiddleCenter;
+            // 
+            // btnChooseFiles
+            // 
+            btnChooseFiles.AutoSize = true;
+            btnChooseFiles.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            btnChooseFiles.Location = new Point(155, 58);
+            btnChooseFiles.Name = "btnChooseFiles";
+            btnChooseFiles.Size = new Size(124, 30);
+            btnChooseFiles.TabIndex = 2;
+            btnChooseFiles.Text = "hoặc Chọn tệp...";
+            btnChooseFiles.UseVisualStyleBackColor = true;
+            btnChooseFiles.Click += btnChooseFiles_Click;
+            // 
             // lblQueueStatus
             // 
             lblQueueStatus.AutoSize = true;
@@ -115,7 +150,7 @@
             // 
             lblConcurrencyInfo.AutoSize = true;
             lblConcurrencyInfo.BackColor = Color.Transparent;
-            lblConcurrencyInfo.Location = new Point(500, 24);
+            lblConcurrencyInfo.Location = new Point(616, 24);
             lblConcurrencyInfo.Name = "lblConcurrencyInfo";
             lblConcurrencyInfo.Size = new Size(50, 20);
             lblConcurrencyInfo.TabIndex = 4;
@@ -139,7 +174,7 @@
             // 
             // bottomPanel
             // 
-            bottomPanel.BackColor = Color.FromArgb(198, 226, 255);
+            bottomPanel.BackColor = Color.FromArgb(142, 229, 238);
             bottomPanel.Controls.Add(lblQueueStatus);
             bottomPanel.Controls.Add(lblTotalFiles);
             bottomPanel.Controls.Add(lblConcurrencyInfo);
@@ -149,41 +184,6 @@
             bottomPanel.Padding = new Padding(8);
             bottomPanel.Size = new Size(1150, 70);
             bottomPanel.TabIndex = 2;
-            // 
-            // btnChooseFiles
-            // 
-            btnChooseFiles.AutoSize = true;
-            btnChooseFiles.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            btnChooseFiles.Location = new Point(155, 58);
-            btnChooseFiles.Name = "btnChooseFiles";
-            btnChooseFiles.Size = new Size(124, 30);
-            btnChooseFiles.TabIndex = 2;
-            btnChooseFiles.Text = "hoặc Chọn tệp...";
-            btnChooseFiles.UseVisualStyleBackColor = true;
-            btnChooseFiles.Click += btnChooseFiles_Click;
-            // 
-            // dropLabel
-            // 
-            dropLabel.Location = new Point(0, 28);
-            dropLabel.Name = "dropLabel";
-            dropLabel.Size = new Size(420, 24);
-            dropLabel.TabIndex = 0;
-            dropLabel.Text = "Kéo && thả file vào đây";
-            dropLabel.TextAlign = ContentAlignment.MiddleCenter;
-            // 
-            // dropZone
-            // 
-            dropZone.AllowDrop = true;
-            dropZone.BackColor = Color.White;
-            dropZone.Controls.Add(dropLabel);
-            dropZone.Controls.Add(btnChooseFiles);
-            dropZone.Location = new Point(0, 0);
-            dropZone.Name = "dropZone";
-            dropZone.Size = new Size(420, 96);
-            dropZone.TabIndex = 0;
-            dropZone.DragDrop += dropZone_DragDrop;
-            dropZone.DragEnter += dropZone_DragEnter;
-            dropZone.Paint += dropZone_Paint;
             // 
             // MainForm
             // 
@@ -198,11 +198,11 @@
             StartPosition = FormStartPosition.CenterScreen;
             Text = "UDM_10-MultiFileUpload";
             topPanel.ResumeLayout(false);
+            dropZone.ResumeLayout(false);
+            dropZone.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)gridFiles).EndInit();
             bottomPanel.ResumeLayout(false);
             bottomPanel.PerformLayout();
-            dropZone.ResumeLayout(false);
-            dropZone.PerformLayout();
             ResumeLayout(false);
         }
 

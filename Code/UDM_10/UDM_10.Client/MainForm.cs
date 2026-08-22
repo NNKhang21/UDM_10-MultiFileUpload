@@ -50,14 +50,14 @@ namespace UDM_10.Client
             gridFiles.CellBorderStyle = DataGridViewCellBorderStyle.Single;
             gridFiles.GridColor = Color.FromArgb(200, 205, 210);
             gridFiles.RowTemplate.Height = 42;
-            gridFiles.BackgroundColor = Color.FloralWhite;
+            gridFiles.BackgroundColor = Color.White;
             gridFiles.Font = new Font("Segoe UI", 9.5f);
 
-            gridFiles.ColumnHeadersDefaultCellStyle.BackColor = Color.FloralWhite;
+            gridFiles.ColumnHeadersDefaultCellStyle.BackColor = Color.White;
             gridFiles.ColumnHeadersDefaultCellStyle.ForeColor = TextDarkColor;
             gridFiles.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 10f, FontStyle.Bold);
             gridFiles.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
-            gridFiles.ColumnHeadersDefaultCellStyle.SelectionBackColor = Color.FloralWhite;   
+            gridFiles.ColumnHeadersDefaultCellStyle.SelectionBackColor = Color.White;   
             gridFiles.ColumnHeadersDefaultCellStyle.SelectionForeColor = TextDarkColor;      
             gridFiles.ColumnHeadersHeight = 40;
             gridFiles.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
@@ -170,7 +170,7 @@ namespace UDM_10.Client
                 UpdateFooter();
             };
 
-            lblConcurrencyInfo.Text = $"Đồng thời tối đa: {UploadManager.MaxConcurrentUploads} file";
+            lblConcurrencyInfo.Text = $"⚡Đồng thời tối đa: {UploadManager.MaxConcurrentUploads} file";
             UpdateFooter();
         }
 
@@ -184,8 +184,13 @@ namespace UDM_10.Client
             int failed = _uploadManager.Files.Count(f => f.Status == UploadStatus.Failed);
             int cancelled = _uploadManager.Files.Count(f => f.Status == UploadStatus.Cancelled);
 
-            lblTotalFiles.Text = $"{total} file ({FileUploadItem.FormatBytes(totalBytes)})";
-            lblQueueStatus.Text = $"Chờ: {waiting}  Đang tải: {uploading}  Xong: {completed}  Lỗi: {failed}  Đã hủy: {cancelled}";
+            lblTotalFiles.Text = $"📁 {total} file ({FileUploadItem.FormatBytes(totalBytes)})";
+            lblQueueStatus.Text =
+                $"⏳ Chờ: {waiting}   " +
+                $"⬆ Đang tải: {uploading}   " +
+                $"✓ Xong: {completed}   " +
+                $"⚠ Lỗi: {failed}   " +
+                $"✕ Đã hủy: {cancelled}";
         }
         private void StylePrimaryButton(Button btn)
         {

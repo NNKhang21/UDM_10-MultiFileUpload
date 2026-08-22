@@ -21,8 +21,8 @@ public class UploadManager
     private readonly IFileUploader _uploader;
     private readonly UploadQueue _uploadQueue;
     private const int MaxFiles = 50;
-    private const int MaxFileSizeMb = 100;
-    public const int MaxConcurrentUploads = 3; 
+    private const int MaxFileSizeMb = 150;
+    public const int MaxConcurrentUploads = 5; 
     public void CancelUpload(FileUploadItem item)
     {
         if (item.Status != UploadStatus.Uploading) return;
