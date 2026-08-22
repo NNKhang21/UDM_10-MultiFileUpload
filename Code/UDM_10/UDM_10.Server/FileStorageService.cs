@@ -8,16 +8,6 @@ using UDM_10.Shared.Models;
 using UDM_10.Shared.Protocol;
 namespace UDM_10.Server;
 
-// NOTE (fix): bản gốc chỉ có skeleton (PrepareUploadAsync/ReceiveFileAsync...)
-// nhưng ClientSession.cs (Trần Hữu Nam) lại gọi BeginUploadAsync/WriteChunkAsync/
-// FinishUploadAsync -> build lỗi vì thiếu method. Bổ sung tối thiểu 3 method này
-// để chạy được luồng UploadStart -> Chunk -> Done. Cũng đã bỏ ServerEvent (type
-// không tồn tại trong UDM_10.Shared) và đổi sang Logger.Warn(string) thường.
-//
-// GIỚI HẠN: _current chỉ lưu MỘT upload tại một thời điểm vì FileStorageService
-// dùng chung cho toàn Server (xem Program.cs). Nếu 2 client upload đồng thời,
-// state này sẽ đè lên nhau. Đủ để test 1 client, nhưng cần tách state theo
-// session/connection trước khi cho nhiều client upload song song thật.
 public class FileStorageService
 {
     private const int MaxFileNameLength = 255;
@@ -31,7 +21,6 @@ public class FileStorageService
 
     private readonly ServerConfig _config;
 
-    // State của upload đang xử lý (xem GIỚI HẠN ở trên).
     private UploadState? _current;
 
     public FileStorageService(ServerConfig config)
@@ -171,13 +160,12 @@ public class FileStorageService
 
     #region Upload Process (API dùng bởi ClientSession.cs)
 
-    // UploadStart -> tạo .part file, lưu state cho lần chunk/done tiếp theo.
-    public async Task BeginUploadAsync(UploadStartMessage start)
+    public async Task BeginUploadAsync(UploadStartMessage start, CancellationToken ct = default)
     {
         ValidateFileName(start.FileName);
         ValidateFileSize(start.FileSize);
 
-        var (targetPath, partFile) = await PrepareUploadAsync(start.FileName);
+        var (targetPath, partFile) = await PrepareUploadAsync(start.FileName, ct);
 
         _current = new UploadState
         {
@@ -192,8 +180,7 @@ public class FileStorageService
         Logger.Info($"[Storage] Begin upload '{start.FileName}' ({start.FileSize} bytes)");
     }
 
-    // UploadChunk -> giải mã base64, ghi nối tiếp vào .part file.
-    public async Task WriteChunkAsync(UploadChunkMessage chunk)
+    public async Task WriteChunkAsync(UploadChunkMessage chunk, CancellationToken ct = default)
     {
         if (_current == null)
         {
@@ -206,15 +193,14 @@ public class FileStorageService
 
         ValidateChunkLength(buffer.Length, remaining);
 
-        await WriteChunkToPartFile(_current.PartFile, buffer, CancellationToken.None);
+        await WriteChunkToPartFile(_current.PartFile, buffer, ct);
 
         _current.BytesWritten += buffer.Length;
 
         Logger.Info($"[Storage] Chunk {chunk.ChunkIndex} written ({buffer.Length} bytes, total {_current.BytesWritten}/{_current.ExpectedSize})");
     }
 
-    // UploadDone -> kiểm tra đủ dữ liệu, đóng .part và đổi tên thành file thật.
-    public async Task<bool> FinishUploadAsync(UploadDoneMessage done)
+    public async Task<bool> FinishUploadAsync(UploadDoneMessage done, CancellationToken ct = default)
     {
         if (_current == null)
         {
@@ -227,7 +213,7 @@ public class FileStorageService
         {
             VerifyUpload(state.BytesWritten, state.ExpectedSize);
 
-            await state.PartFile.FlushAsync();
+            await state.PartFile.FlushAsync(ct);
             state.PartFile.Close();
 
             CompleteUpload(state.TargetPath);
@@ -261,20 +247,16 @@ public class FileStorageService
 
     public async Task<string> ReceiveFileAsync(Stream stream, string targetPath, FileStream partFile, long expectedSize, CancellationToken ct, int idleTimeoutMs = 0)
     {
-        // TODO: dùng cho hướng đọc raw byte (ReadChunkHeader/ReadChunkData) thay
-        // vì base64-trong-JSON như hiện tại. Chưa được ClientSession.cs gọi tới.
         return await Task.FromResult(string.Empty);
     }
 
     private async Task<UploadChunkHeader> ReadChunkHeader(Stream stream, CancellationToken ct, int idleTimeoutMs)
     {
-        // TODO: read JSON header from stream via MessageFramer, deserialize into UploadChunkHeader
         return await Task.FromResult<UploadChunkHeader>(null!);
     }
 
     private async Task<byte[]> ReadChunkData(Stream stream, int chunkLength, CancellationToken ct, int idleTimeoutMs)
     {
-        // TODO: read raw data from stream via MessageFramer according to chunkLength
         return await Task.FromResult(Array.Empty<byte>());
     }
 
@@ -335,8 +317,6 @@ public class FileStorageService
     #endregion
 }
 
-// TODO: chưa dùng tới (dành cho hướng ReceiveFileAsync raw-byte ở trên).
-// Nga (Protocol) nên định nghĩa lại field cho đúng thiết kế cuối cùng.
 public class UploadChunkHeader
 {
     public int ChunkIndex { get; set; }
