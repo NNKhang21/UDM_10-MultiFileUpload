@@ -1,15 +1,39 @@
 namespace UDM_10.Shared.Protocol
+
 {
-    // NOTE (fix): file này trước đó trống 0 byte -> ClientSession.cs không build được.
-    // Đây là bản tối thiểu để cả nhóm build/chạy thử được; Nga (Protocol) nên rà lại tên
-    // và bổ sung nếu cần (ví dụ mở rộng cho multi-file: field TransferId,...).
+
     public enum MessageType
+
     {
+
+        // Client bắt đầu upload
+
         UploadStart,
+
+        // Server xác nhận nhận yêu cầu
+
         UploadStartAck,
+
+        // Client gửi từng phần dữ liệu
+
         UploadChunk,
+
+        // Server xác nhận chunk
+
         UploadChunkAck,
+
+        // Client báo gửi xong
+
         UploadDone,
-        UploadResult
+
+        // Server trả kết quả cuối
+
+        UploadResult,
+
+        // Thông báo lỗi protocol/network
+
+        Error
+
     }
+
 }
