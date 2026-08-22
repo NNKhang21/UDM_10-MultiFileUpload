@@ -212,10 +212,11 @@ namespace UDM_10.Server
                         Logger.Info(
                             $"[Upload Start] File={start.FileName}");
 
-                        await _storage.BeginUploadAsync(start);
+                        await _storage.BeginUploadAsync(start, token);
 
                         await SendAckAsync(
                             MessageType.UploadStartAck,
+                            start.TransferId,
                             token);
 
                         break;
@@ -226,10 +227,11 @@ namespace UDM_10.Server
                             $"[Upload Chunk] " +
                             $"Chunk={chunk.ChunkIndex}");
 
-                        await _storage.WriteChunkAsync(chunk);
+                        await _storage.WriteChunkAsync(chunk, token);
 
                         await SendAckAsync(
                             MessageType.UploadChunkAck,
+                            chunk.TransferId,
                             token);
 
                         break;
@@ -240,10 +242,12 @@ namespace UDM_10.Server
                             $"[Upload Done] File={done.FileName}");
 
                         bool success =
-                            await _storage.FinishUploadAsync(done);
+                            await _storage.FinishUploadAsync(done, token);
 
                         await SendResultAsync(
                             success,
+                            done.TransferId,
+                            null,
                             token);
 
                         break;
@@ -304,6 +308,8 @@ namespace UDM_10.Server
             {
                 await SendResultAsync(
                     false,
+                    Guid.Empty,
+                    null,
                     token);
             }
             catch (Exception ex)
@@ -319,11 +325,13 @@ namespace UDM_10.Server
         /// </summary>
         private async Task SendAckAsync(
             MessageType ackType,
+            Guid transferId,
             CancellationToken token)
         {
             var ack = new AckMessage
             {
                 Type = ackType,
+                TransferId = transferId,
                 Timestamp = DateTime.UtcNow
             };
 
@@ -341,11 +349,15 @@ namespace UDM_10.Server
         /// </summary>
         private async Task SendResultAsync(
             bool success,
+            Guid transferId,
+            string? serverFileName,
             CancellationToken token)
         {
             var result = new UploadResultMessage
             {
                 IsSuccess = success,
+                TransferId = transferId,
+                ServerFileName = serverFileName,
                 Message = success
                     ? "Upload completed successfully."
                     : "Upload failed."
