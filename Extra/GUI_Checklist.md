@@ -23,7 +23,36 @@ Tài liệu này dùng để kiểm tra các yêu cầu của giao diện (GUI) 
 - [x] Kéo-thả file+thư mục cùng lúc: chưa xác nhận MessageBox báo lỗi thư mục có
       hiện đúng không (test bị nhiễu do thao tác tay, cần debug lại kỹ hơn sau)
 
+- [x] Giới hạn upload đồng thời + công bố rõ — MaxConcurrentUploads = 3,
+      hiện qua lblConcurrencyInfo ngay khi mở app
+
+- [ ] Test trùng tên với Server thật - CHƯA xong, đang chờ Tiến hoàn thiện DuplicatePolicy
+
+- [x] GUI đã sẵn sàng hiển thị tên file cuối cùng (ServerFileName), test bằng FakeUploader mô phỏng đúng cơ chế đổi tên khi trùng
+
+- [x] Nút Hủy riêng từng file hoạt động đúng qua item.Cts, không ảnh hưởng file khác
+
+- [x] Nút Thử lại reset đúng qua ResetForRetry(), upload lại thành công
+
+- [x] Nút Xóa chỉ hoạt động khi Completed/Failed/Cancelled, chặn đúng khi Waiting/Uploading
+
+- [x] Cô lập lỗi xác nhận đúng: 1 file lỗi không ảnh hưởng các file khác trong Task.WhenAll
+
+- [x] Tooltip hiển thị rõ ErrorMessage khi hover vào dòng Failed
+
+- [x] GUI không treo khi có file lỗi giữa chừng lúc đang upload nhiều file
+
+- [x] Thêm checkbox debug "Giả lập lỗi" để chủ động test lại ở Tuần 5 mà không cần đổi tên file thủ công
+
+- [x] Phân biệt rõ lỗi xử lý file vs mất kết nối qua 2 checkbox debug độc lập
+
+- [x] UpdateFooter hiển thị thêm số lượng Lỗi/Đã hủy, không chỉ Chờ/Đang tải/Xong
+
 ## Ghi chú
+## Cập nhật — chuyển sang dùng UploadQueue (Phú) thay vì SemaphoreSlim rieng
+- [x] UploadManager goi qua UploadQueue.EnqueueAsync, giu dung phan cong ban dau
+
+- [x] Test lai 6-8 file dong thoi, hanh vi dung 3 file/luc nhu truoc
 
 - Đây là checklist dùng để kiểm tra giao diện Client trước khi nghiệm thu.
 - Mỗi mục sau khi hoàn thành nên được kiểm thử và đánh dấu đạt.

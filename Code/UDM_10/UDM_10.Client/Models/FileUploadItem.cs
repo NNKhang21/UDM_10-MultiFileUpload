@@ -13,6 +13,9 @@ public class FileUploadItem : INotifyPropertyChanged
     // cac file khac dang upload dong thoi. Tao moi moi lan bat dau upload.
     public CancellationTokenSource? Cts { get; set; }
 
+    private bool _isSelected = true;
+    public bool IsSelected { get => _isSelected; set { _isSelected = value; OnChanged(); } }
+
     // Hien "12.0 MB" thay vi so byte tho, dung o cot Size cua DataGridView
     public string FileSizeText => FormatBytes(FileSizeBytes);
 
@@ -52,6 +55,8 @@ public class FileUploadItem : INotifyPropertyChanged
     private string? _errorMessage;
     public string? ErrorMessage { get => _errorMessage; set { _errorMessage = value; OnChanged(); } }
 
+    private string? _serverFileName;
+    public string? ServerFileName { get => _serverFileName; set { _serverFileName = value; OnChanged(); } }
     public string ProgressPercentText => Status == UploadStatus.Uploading || Status == UploadStatus.Completed
     ? $"{ProgressPercent:0}%"
     : "";
@@ -64,6 +69,7 @@ public class FileUploadItem : INotifyPropertyChanged
         SentBytes = 0;
         SpeedText = "";
         ErrorMessage = null;
+        ServerFileName = null;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

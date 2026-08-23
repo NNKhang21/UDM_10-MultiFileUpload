@@ -1,28 +1,38 @@
 ﻿using System.ComponentModel;
 using UDM_10.Client.Models;
-
+using System.IO;
 namespace UDM_10.Client.Services;
 
+public record UploadOutcome(
+    bool Success, 
+    string? ServerFileName, 
+    string? Message);
 public interface IFileUploader
 {
-    Task<bool> UploadFileAsync(string filePath, IProgress<double> progress, CancellationToken ct);
+    Task<UploadOutcome> UploadFileAsync(
+        string filePath, 
+        IProgress<double> progress, 
+        CancellationToken ct);
 }
 public class UploadManager
 {
     public BindingList<FileUploadItem> Files { get; } = new();
 
     private readonly IFileUploader _uploader;
-
-    // TODO: doc tu appsettings.json khi Cam Tien hoan thien ClientConfig - tam hard-code
-    private const int MaxFiles = 20;
-    private const int MaxFileSizeMb = 100;
-
-    // TODO: UploadInBatchesAsync() - dieu phoi upload nhieu file dong thoi
-    // TODO: CancelUpload(FileUploadItem item)
-    // TODO: ResetForRetry da nam san trong FileUploadItem, chi can goi lai o day
+    private readonly UploadQueue _uploadQueue;
+    private const int MaxFiles = 50;
+    private const int MaxFileSizeMb = 150;
+    public const int MaxConcurrentUploads = 5; 
+    public void CancelUpload(FileUploadItem item)
+    {
+        if (item.Status != UploadStatus.Uploading) return;
+        item.Cts?.Cancel();
+    }
+    
     public UploadManager(IFileUploader uploader)
     {
         _uploader = uploader;
+        _uploadQueue = new UploadQueue(uploader, MaxConcurrentUploads);
     }
     public bool AddFile(string path, out string? error)
     {
@@ -82,20 +92,96 @@ public class UploadManager
     public async Task UploadInBatchesAsync()
     {
         var pending = Files.Where(f => f.Status == UploadStatus.Waiting).ToList();
-        foreach (var item in pending)
+
+        var tasks = pending.Select(item => UploadOneFileAsync(item)).ToList();
+        await Task.WhenAll(tasks);
+    }
+    public async Task UploadSelectedAsync()
+    {
+        var pending = Files.Where(f => f.IsSelected && f.Status == UploadStatus.Waiting).ToList();
+        var tasks = pending.Select(item => UploadOneFileAsync(item)).ToList();
+        await Task.WhenAll(tasks);
+    }
+
+    private async Task UploadOneFileAsync(FileUploadItem item)
+    {
+        item.Status = UploadStatus.Uploading;
+        item.Cts?.Dispose();
+        item.Cts = new CancellationTokenSource();
+
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        long lastBytes = 0;
+        double lastSeconds = 0;
+
+        var progress = new Progress<double>(p =>
         {
-            item.Status = UploadStatus.Uploading;
-            var progress = new Progress<double>(p => item.ProgressPercent = p);
-            try
+            item.ProgressPercent = p;
+            long currentBytes = (long)(item.FileSizeBytes * (p / 100.0));
+            item.SentBytes = currentBytes;
+
+            double nowSeconds = stopwatch.Elapsed.TotalSeconds;
+            double deltaSeconds = nowSeconds - lastSeconds;
+            long deltaBytes = currentBytes - lastBytes;
+            if (deltaSeconds > 0)
             {
-                bool ok = await _uploader.UploadFileAsync(item.FilePath, progress, CancellationToken.None);
-                item.Status = ok ? UploadStatus.Completed : UploadStatus.Failed;
+                double bytesPerSecond = deltaBytes / deltaSeconds;
+                item.SpeedText = FileUploadItem.FormatBytes((long)bytesPerSecond) + "/s";
             }
-            catch (Exception ex)
-            {
-                item.Status = UploadStatus.Failed;
-                item.ErrorMessage = ex.Message;
-            }
+            lastBytes = currentBytes;
+            lastSeconds = nowSeconds;
+        });
+
+        try
+        {
+            var result = await _uploadQueue.EnqueueAsync(item.FilePath, progress, item.Cts.Token);
+            item.ServerFileName = result.ServerFileName;
+            item.Status = result.Success ? UploadStatus.Completed : UploadStatus.Failed;
+            if (!result.Success) item.ErrorMessage = result.Message;
         }
+        catch (OperationCanceledException)
+        {
+            item.Status = UploadStatus.Cancelled;
+        }
+        catch (Exception ex)
+        {
+            item.Status = UploadStatus.Failed;
+            item.ErrorMessage = ex.Message;
+        }
+    }
+
+    public void CancelAll()
+    {
+        var uploading = Files.Where(f => f.Status == UploadStatus.Uploading).ToList();
+        foreach (var item in uploading)
+            CancelUpload(item);
+    }
+
+    public async Task RetryAllFailedAsync()
+    {
+        var failed = Files.Where(f => f.Status == UploadStatus.Failed || f.Status == UploadStatus.Cancelled).ToList();
+        var tasks = failed.Select(item => RetryUploadAsync(item)).ToList();
+        await Task.WhenAll(tasks);
+    }
+
+    public void RemoveAllEligible()
+    {
+        var eligible = Files.Where(f =>
+            f.Status == UploadStatus.Completed ||
+            f.Status == UploadStatus.Failed ||
+            f.Status == UploadStatus.Cancelled).ToList();
+
+        foreach (var item in eligible)
+            Files.Remove(item);
+    }
+    public async Task RetryUploadAsync(FileUploadItem item)
+    {
+        if (item.Status != UploadStatus.Failed && item.Status != UploadStatus.Cancelled) return;
+        item.ResetForRetry();
+        await UploadOneFileAsync(item);
+    }
+    public bool RemoveFile(FileUploadItem item)
+    {
+        if (item.Status == UploadStatus.Waiting || item.Status == UploadStatus.Uploading) return false;
+        return Files.Remove(item);
     }
 }
