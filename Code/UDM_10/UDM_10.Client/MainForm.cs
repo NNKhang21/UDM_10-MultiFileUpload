@@ -160,25 +160,43 @@ namespace UDM_10.Client
             {
                 Name = "colCancel",
                 HeaderText = "Hủy",
-                Text = "✕",
+                Text = "\uE711",   // icon X
                 UseColumnTextForButtonValue = true,
-                Width = 70
+                Width = 60,
+                DefaultCellStyle = new DataGridViewCellStyle
+                {
+                    Font = new Font("Segoe Fluent Icons", 11f),
+                    ForeColor = Color.FromArgb(185, 28, 28),
+                    Alignment = DataGridViewContentAlignment.MiddleCenter
+                }
             });
             gridFiles.Columns.Add(new DataGridViewButtonColumn
             {
                 Name = "colRetry",
                 HeaderText = "Thử lại",
-                Text = "🔄",
+                Text = "\uE72C",   // icon refresh/xoay vong
                 UseColumnTextForButtonValue = true,
-                Width = 80
+                Width = 60,
+                DefaultCellStyle = new DataGridViewCellStyle
+                {
+                    Font = new Font("Segoe Fluent Icons", 11f),
+                    ForeColor = AccentColor,
+                    Alignment = DataGridViewContentAlignment.MiddleCenter
+                }
             });
             gridFiles.Columns.Add(new DataGridViewButtonColumn
             {
                 Name = "colDelete",
                 HeaderText = "Xóa",
-                Text = "🗑️",
+                Text = "\uE74D",   // icon thung rac
                 UseColumnTextForButtonValue = true,
-                Width = 70
+                Width = 60,
+                DefaultCellStyle = new DataGridViewCellStyle
+                {
+                    Font = new Font("Segoe Fluent Icons", 11f),
+                    ForeColor = Color.FromArgb(185, 28, 28),
+                    Alignment = DataGridViewContentAlignment.MiddleCenter
+                }
             });
             gridFiles.CellPainting += gridFiles_CellPainting;
             gridFiles.CellContentClick += gridFiles_CellContentClick;
