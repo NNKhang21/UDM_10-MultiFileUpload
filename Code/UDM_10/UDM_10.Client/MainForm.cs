@@ -32,6 +32,9 @@ namespace UDM_10.Client
         {
             InitializeComponent();
             StylePrimaryButton(btnUploadAll);
+            StyleSecondaryButton(btnCancelAll);
+            StyleSecondaryButton(btnRetryAllFailed);
+            StyleDangerButton(btnDeleteAll);
             StyleSecondaryButton(btnUploadSelected);
             StyleLinkButton(btnChooseFiles);
             StyleSecondaryButton(btnTestStatus);
@@ -191,6 +194,12 @@ namespace UDM_10.Client
                 $"✓ Xong: {completed}   " +
                 $"⚠ Lỗi: {failed}   " +
                 $"✕ Đã hủy: {cancelled}";
+            lblConcurrencyInfo.Text = $"Đồng thời tối đa: {UploadManager.MaxConcurrentUploads} file";
+            lblQueueStatus.Location = new Point(lblTotalFiles.Right + 24, lblTotalFiles.Top);
+            lblConcurrencyInfo.Location = new Point(lblQueueStatus.Right + 24, lblQueueStatus.Top);
+            btnCancelAll.Location = new Point(lblConcurrencyInfo.Right + 24, 18);
+            btnRetryAllFailed.Location = new Point(btnCancelAll.Right + 10, 18);
+            btnDeleteAll.Location = new Point(btnRetryAllFailed.Right + 10, 18);
         }
         private void StylePrimaryButton(Button btn)
         {
@@ -216,6 +225,18 @@ namespace UDM_10.Client
             btn.MouseEnter += (s, e) => btn.BackColor = Color.FromArgb(243, 244, 246);
             btn.MouseLeave += (s, e) => btn.BackColor = Color.White;
         }
+        private void StyleDangerButton(Button btn)
+        {
+            btn.FlatStyle = FlatStyle.Flat;
+            btn.FlatAppearance.BorderSize = 1;
+            btn.FlatAppearance.BorderColor = Color.FromArgb(254, 202, 202);
+            btn.BackColor = Color.FromArgb(254, 242, 242);
+            btn.ForeColor = Color.FromArgb(185, 28, 28);
+            btn.Font = new Font("Segoe UI", 9.5f);
+            btn.Cursor = Cursors.Hand;
+            btn.MouseEnter += (s, e) => btn.BackColor = Color.FromArgb(254, 226, 226);
+            btn.MouseLeave += (s, e) => btn.BackColor = Color.FromArgb(254, 242, 242);
+        }
         private void StyleLinkButton(Button btn)
         {
             btn.FlatStyle = FlatStyle.Flat;
@@ -230,6 +251,29 @@ namespace UDM_10.Client
             btnUploadSelected.Enabled = false;
             await _uploadManager.UploadSelectedAsync();
             btnUploadSelected.Enabled = true;
+        }
+        private void btnCancelAll_Click(object sender, EventArgs e)
+        {
+            _uploadManager.CancelAll();
+        }
+
+        private async void btnRetryAllFailed_Click(object sender, EventArgs e)
+        {
+            btnRetryAllFailed.Enabled = false;
+            await _uploadManager.RetryAllFailedAsync();
+            btnRetryAllFailed.Enabled = true;
+        }
+
+        private void btnDeleteAll_Click(object sender, EventArgs e)
+        {
+            var confirm = MessageBox.Show(
+                "Xóa toàn bộ file đã Hoàn thành/Lỗi/Đã hủy khỏi danh sách?",
+                "Xác nhận xóa tất cả",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+
+            if (confirm == DialogResult.Yes)
+                _uploadManager.RemoveAllEligible();
         }
         private void AddFilesToList(IEnumerable<string> paths)
         {

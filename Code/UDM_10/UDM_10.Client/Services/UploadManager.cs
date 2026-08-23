@@ -149,6 +149,30 @@ public class UploadManager
         }
     }
 
+    public void CancelAll()
+    {
+        var uploading = Files.Where(f => f.Status == UploadStatus.Uploading).ToList();
+        foreach (var item in uploading)
+            CancelUpload(item);
+    }
+
+    public async Task RetryAllFailedAsync()
+    {
+        var failed = Files.Where(f => f.Status == UploadStatus.Failed || f.Status == UploadStatus.Cancelled).ToList();
+        var tasks = failed.Select(item => RetryUploadAsync(item)).ToList();
+        await Task.WhenAll(tasks);
+    }
+
+    public void RemoveAllEligible()
+    {
+        var eligible = Files.Where(f =>
+            f.Status == UploadStatus.Completed ||
+            f.Status == UploadStatus.Failed ||
+            f.Status == UploadStatus.Cancelled).ToList();
+
+        foreach (var item in eligible)
+            Files.Remove(item);
+    }
     public async Task RetryUploadAsync(FileUploadItem item)
     {
         if (item.Status != UploadStatus.Failed && item.Status != UploadStatus.Cancelled) return;

@@ -156,6 +156,42 @@
             lblConcurrencyInfo.TabIndex = 4;
             lblConcurrencyInfo.Text = "label1";
             // 
+            // btnCancelAll
+            // 
+            btnCancelAll = new Button();
+            btnCancelAll.Location = new Point(750, 18);
+            btnCancelAll.Name = "btnCancelAll";
+            btnCancelAll.AutoSize = true;
+            btnCancelAll.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            btnCancelAll.TabIndex = 7;
+            btnCancelAll.Text = "Hủy tất cả";
+            btnCancelAll.UseVisualStyleBackColor = true;
+            btnCancelAll.Click += btnCancelAll_Click;
+            // 
+            // btnRetryAllFailed
+            // 
+            btnRetryAllFailed = new Button();
+            btnRetryAllFailed.Location = new Point(840, 18);
+            btnRetryAllFailed.Name = "btnRetryAllFailed";
+            btnRetryAllFailed.AutoSize = true;
+            btnRetryAllFailed.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            btnRetryAllFailed.TabIndex = 8;
+            btnRetryAllFailed.Text = "Thử lại lỗi";
+            btnRetryAllFailed.UseVisualStyleBackColor = true;
+            btnRetryAllFailed.Click += btnRetryAllFailed_Click;
+            // 
+            // btnDeleteAll
+            // 
+            btnDeleteAll = new Button();
+            btnDeleteAll.Location = new Point(930, 18);
+            btnDeleteAll.Name = "btnDeleteAll";
+            btnDeleteAll.AutoSize = true;
+            btnDeleteAll.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            btnDeleteAll.TabIndex = 9;
+            btnDeleteAll.Text = "Xóa tất cả";
+            btnDeleteAll.UseVisualStyleBackColor = true;
+            btnDeleteAll.Click += btnDeleteAll_Click;
+            // 
             // gridFiles
             // 
             gridFiles.AllowUserToAddRows = false;
@@ -178,6 +214,9 @@
             bottomPanel.Controls.Add(lblQueueStatus);
             bottomPanel.Controls.Add(lblTotalFiles);
             bottomPanel.Controls.Add(lblConcurrencyInfo);
+            bottomPanel.Controls.Add(btnCancelAll);
+            bottomPanel.Controls.Add(btnRetryAllFailed);
+            bottomPanel.Controls.Add(btnDeleteAll);
             bottomPanel.Dock = DockStyle.Bottom;
             bottomPanel.Location = new Point(0, 603);
             bottomPanel.Name = "bottomPanel";
@@ -213,6 +252,9 @@
         private Button btnTestStatus;
         private Button btnUploadAll;
         private Button btnUploadSelected;
+        private Button btnCancelAll;
+        private Button btnRetryAllFailed;
+        private Button btnDeleteAll;
         private Label lblConcurrencyInfo;
         private Label lblQueueStatus;
         private Label lblTotalFiles;
