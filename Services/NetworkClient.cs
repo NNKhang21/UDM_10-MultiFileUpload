@@ -1,9 +1,9 @@
 ﻿using System;
 using System.IO;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using UDM_10.Shared.Config; // Hoặc namespace chứa MessageFramer & Messages của dự án
 
 namespace UDM_10.Client.Services
 {
@@ -29,7 +29,6 @@ namespace UDM_10.Client.Services
                 Disconnect(); // Đóng kết nối cũ nếu có
                 _client = new TcpClient();
 
-                // Cấu hình ngắt kết nối nếu mạng giật/treo quá 15s (Yêu cầu Tuần 4)
                 _client.SendTimeout = ReadWriteTimeoutMs;
                 _client.ReceiveTimeout = ReadWriteTimeoutMs;
 
@@ -44,86 +43,109 @@ namespace UDM_10.Client.Services
             }
         }
 
-        // Hàm kiểm tra xem mạng còn sống không (Yêu cầu Tuần 4)
+        // Hàm kiểm tra xem mạng còn sống không
         private bool EnsureConnected()
         {
             return _client != null && _client.Connected && _stream != null;
         }
 
-        // Hàm xử lý Upload File chính
+        // Hàm xử lý Upload File chính chuẩn giao thức JSON Message
         public async Task<UploadOutcome> UploadFileAsync(string filePath, IProgress<double> progress, CancellationToken ct)
         {
-            // Kiểm tra kết nối trước khi gửi
             if (!EnsureConnected())
                 return new UploadOutcome(false, null, "Chưa kết nối hoặc mất kết nối tới Server.");
 
+            var fileInfo = new FileInfo(filePath);
+            if (!fileInfo.Exists)
+                return new UploadOutcome(false, null, "File không tồn tại.");
+
             try
             {
-                FileInfo fileInfo = new FileInfo(filePath);
-                if (!fileInfo.Exists)
-                    return new UploadOutcome(false, null, "File không tồn tại.");
+                // Bước 1: Gửi UploadStartMessage
+                var startMsg = new UploadStartMessage
+                {
+                    FileName = fileInfo.Name,
+                    FileSize = fileInfo.Length
+                };
+                await MessageFramer.WriteMessageAsync(_stream!, startMsg, ct);
 
-                // Bước 1: Gửi Tên file và Dung lượng file sang Server
-                byte[] fileNameBytes = Encoding.UTF8.GetBytes(fileInfo.Name);
-                byte[] fileNameLengthBytes = BitConverter.GetBytes(fileNameBytes.Length);
-                await _stream!.WriteAsync(fileNameLengthBytes, 0, fileNameLengthBytes.Length, ct);
-                await _stream.WriteAsync(fileNameBytes, 0, fileNameBytes.Length, ct);
+                // Chờ Server phản hồi AckMessage
+                var startAck = await MessageFramer.ReadMessageAsync(_stream!, ct);
+                if (startAck is not AckMessage)
+                {
+                    return new UploadOutcome(false, fileInfo.Name, "Server từ chối bắt đầu upload.");
+                }
 
-                byte[] fileSizeBytes = BitConverter.GetBytes(fileInfo.Length);
-                await _stream.WriteAsync(fileSizeBytes, 0, fileSizeBytes.Length, ct);
+                // Bước 2: Chia file thành gói 64KB và gửi dạng Base64
+                const int chunkSize = 64 * 1024;
+                byte[] buffer = new byte[chunkSize];
+                long totalBytesRead = 0;
 
-                // Bước 2: Chia file thành các gói nhỏ (64KB) và gửi đi
-                int bufferSize = 64 * 1024;
-                byte[] buffer = new byte[bufferSize];
-                long totalBytesSent = 0;
-                long totalFileLength = fileInfo.Length;
-
-                using (FileStream fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
                     int bytesRead;
                     while ((bytesRead = await fs.ReadAsync(buffer, 0, buffer.Length, ct)) > 0)
                     {
-                        // Kiểm tra nếu người dùng bấm nút Hủy
                         ct.ThrowIfCancellationRequested();
 
-                        await _stream.WriteAsync(buffer, 0, bytesRead, ct);
+                        byte[] actualBytes = new byte[bytesRead];
+                        Array.Copy(buffer, actualBytes, bytesRead);
 
-                        // Cập nhật % tiến độ cho giao diện của Khang
-                        totalBytesSent += bytesRead;
-                        if (progress != null && totalFileLength > 0)
+                        var chunkMsg = new UploadChunkMessage
                         {
-                            double percentage = (double)totalBytesSent / totalFileLength * 100;
-                            progress.Report(percentage);
+                            FileName = fileInfo.Name,
+                            Base64Data = Convert.ToBase64String(actualBytes)
+                        };
+
+                        await MessageFramer.WriteMessageAsync(_stream!, chunkMsg, ct);
+
+                        // Chờ AckMessage cho từng chunk
+                        var chunkAck = await MessageFramer.ReadMessageAsync(_stream!, ct);
+                        if (chunkAck is not AckMessage)
+                        {
+                            return new UploadOutcome(false, fileInfo.Name, "Lỗi truyền tải chunk từ Server.");
                         }
+
+                        totalBytesRead += bytesRead;
+                        progress?.Report((double)totalBytesRead / fileInfo.Length * 100);
                     }
                 }
 
-                await _stream.FlushAsync(ct);
+                // Bước 3: Gửi UploadDoneMessage
+                var doneMsg = new UploadDoneMessage { FileName = fileInfo.Name };
+                await MessageFramer.WriteMessageAsync(_stream!, doneMsg, ct);
 
-                // Trả về kết quả thành công
-                return new UploadOutcome(true, fileInfo.Name, "Upload thành công.");
+                // Bước 4: Đọc kết quả THẬT từ Server (UploadResultMessage)
+                var resultMsg = await MessageFramer.ReadMessageAsync(_stream!, ct) as UploadResultMessage;
+                if (resultMsg != null)
+                {
+                    return new UploadOutcome(
+                        resultMsg.IsSuccess,
+                        resultMsg.ServerFileName ?? fileInfo.Name,
+                        resultMsg.Message
+                    );
+                }
+
+                return new UploadOutcome(false, fileInfo.Name, "Không nhận được phản hồi kết quả từ Server.");
             }
             catch (OperationCanceledException)
             {
-                // Xử lý khi bấm nút Hủy
-                return new UploadOutcome(false, null, "Đã hủy tiến trình upload.");
+                return new UploadOutcome(false, fileInfo.Name, "Đã hủy tiến trình upload.");
             }
             catch (SocketException ex)
             {
-                // Mất kết nối mạng giữa chừng (Yêu cầu Tuần 4)
                 Disconnect();
-                return new UploadOutcome(false, null, $"Lỗi mạng: {ex.Message}");
+                return new UploadOutcome(false, fileInfo.Name, $"Lỗi mạng: {ex.Message}");
             }
             catch (IOException ex)
             {
-                // Quá thời gian chờ / Treo mạng (Yêu cầu Tuần 4)
                 Disconnect();
-                return new UploadOutcome(false, null, $"Lỗi truyền dữ liệu (Timeout): {ex.Message}");
+                return new UploadOutcome(false, fileInfo.Name, $"Lỗi truyền dữ liệu (Timeout): {ex.Message}");
             }
             catch (Exception ex)
             {
                 Disconnect();
-                return new UploadOutcome(false, null, $"Lỗi không xác định: {ex.Message}");
+                return new UploadOutcome(false, fileInfo.Name, $"Lỗi không xác định: {ex.Message}");
             }
         }
 
