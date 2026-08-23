@@ -11,20 +11,20 @@ namespace UDM_10.Server
     public class Program
     {
         private static TcpListener? _listener;
-
         private static readonly CancellationTokenSource _cts = new();
-
         private static readonly List<ClientSession> _clients = new();
-
         private static readonly object _lock = new();
-
-        // Một FileStorageService dùng chung cho toàn bộ Server
         private static FileStorageService? _storage;
-
         private static ServerConfig? _config;
 
         public static async Task Main(string[] args)
         {
+            Console.CancelKeyPress += (sender, e) =>
+            {
+                e.Cancel = true;
+                _cts.Cancel();
+            };
+
             Logger.Init();
 
             try
@@ -45,13 +45,8 @@ namespace UDM_10.Server
             }
         }
 
-        private static async Task RunAsync(
-            CancellationToken token)
+        private static async Task RunAsync(CancellationToken token)
         {
-            // ==========================================
-            // 1. LOAD CONFIG
-            // ==========================================
-
             _config = ServerConfig.Load("appsettings.json");
 
             Logger.Info(
@@ -59,27 +54,13 @@ namespace UDM_10.Server
                 $"Port={_config.Port}, " +
                 $"IdleTimeout={_config.IdleTimeoutSeconds}s");
 
-            // ==========================================
-            // 2. STARTUP CLEANUP
-            // ==========================================
-
             StartupCleanupService.RunStartupCleanup(_config);
-
-            // ==========================================
-            // 3. CREATE SHARED STORAGE SERVICE
-            // ==========================================
 
             _storage = new FileStorageService(_config);
 
-            // ==========================================
-            // 4. CREATE TCP LISTENER
-            // ==========================================
-
             IPAddress ip;
 
-            if (!IPAddress.TryParse(
-                    _config.Host,
-                    out ip!))
+            if (!IPAddress.TryParse(_config.Host, out ip!))
             {
                 Logger.Warn(
                     $"Invalid host '{_config.Host}'. " +
@@ -88,9 +69,7 @@ namespace UDM_10.Server
                 ip = IPAddress.Any;
             }
 
-            _listener = new TcpListener(
-                ip,
-                _config.Port);
+            _listener = new TcpListener(ip, _config.Port);
 
             _listener.Server.SetSocketOption(
                 SocketOptionLevel.Socket,
@@ -99,33 +78,19 @@ namespace UDM_10.Server
 
             _listener.Start();
 
-            Logger.Info(
-                $"Server started at " +
-                $"{ip}:{_config.Port}");
+            Logger.Info($"Server started at {ip}:{_config.Port}");
 
             Console.WriteLine("==============================");
             Console.WriteLine("       SERVER STARTED");
             Console.WriteLine("==============================");
-            Console.WriteLine(
-                $"Host          : {_config.Host}");
-            Console.WriteLine(
-                $"Port          : {_config.Port}");
-            Console.WriteLine(
-                $"Idle Timeout  : {_config.IdleTimeoutSeconds}s");
+            Console.WriteLine($"Host          : {_config.Host}");
+            Console.WriteLine($"Port          : {_config.Port}");
+            Console.WriteLine($"Idle Timeout  : {_config.IdleTimeoutSeconds}s");
             Console.WriteLine("==============================");
             Console.WriteLine();
 
-            // ==========================================
-            // 5. CREATE IDLE TIMEOUT
-            // ==========================================
-
             TimeSpan idleTimeout =
-                TimeSpan.FromSeconds(
-                    _config.IdleTimeoutSeconds);
-
-            // ==========================================
-            // 6. ACCEPT CLIENT LOOP
-            // ==========================================
+                TimeSpan.FromSeconds(_config.IdleTimeoutSeconds);
 
             while (!token.IsCancellationRequested)
             {
@@ -133,17 +98,11 @@ namespace UDM_10.Server
 
                 try
                 {
-                    client =
-                        await _listener.AcceptTcpClientAsync(
-                            token);
+                    client = await _listener.AcceptTcpClientAsync(token);
 
                     Logger.Info(
                         $"Client connected: " +
                         $"{client.Client.RemoteEndPoint}");
-
-                    // ==================================
-                    // 7. CREATE CLIENT SESSION
-                    // ==================================
 
                     ClientSession session =
                         new ClientSession(
@@ -156,13 +115,7 @@ namespace UDM_10.Server
                         _clients.Add(session);
                     }
 
-                    // ==================================
-                    // 8. RUN CLIENT INDEPENDENTLY
-                    // ==================================
-
-                    _ = RunClientSessionAsync(
-                        session,
-                        token);
+                    _ = RunClientSessionAsync(session, token);
                 }
                 catch (OperationCanceledException)
                 {
@@ -185,10 +138,6 @@ namespace UDM_10.Server
             }
         }
 
-        /// <summary>
-        /// Chạy một ClientSession độc lập.
-        /// Exception của một Client không làm Server chết.
-        /// </summary>
         private static async Task RunClientSessionAsync(
             ClientSession session,
             CancellationToken token)
@@ -214,19 +163,11 @@ namespace UDM_10.Server
             }
         }
 
-        /// <summary>
-        /// Đóng Server và tất cả ClientSession.
-        /// </summary>
         private static void StopServer()
         {
             try
             {
-                Logger.Info(
-                    "Stopping server...");
-
-                // ==========================================
-                // 1. STOP LISTENER
-                // ==========================================
+                Logger.Info("Stopping server...");
 
                 try
                 {
@@ -238,17 +179,6 @@ namespace UDM_10.Server
                         $"Listener stop error: {ex.Message}");
                 }
 
-                // ==========================================
-                // 2. COPY CLIENT LIST
-                // ==========================================
-                //
-                // Không giữ _lock trong khi gọi client.Stop()
-                // vì Stop() là thao tác cleanup/IO (đóng stream,
-                // đóng socket) và có thể mất thời gian.
-                // Giữ lock lâu ở đây sẽ chặn Accept loop và
-                // RunClientSessionAsync đang cần _lock để
-                // Add/Remove session.
-
                 List<ClientSession> clientsToStop;
 
                 lock (_lock)
@@ -258,10 +188,6 @@ namespace UDM_10.Server
 
                     _clients.Clear();
                 }
-
-                // ==========================================
-                // 3. CLOSE ALL CLIENTS (ngoài lock)
-                // ==========================================
 
                 foreach (ClientSession client in clientsToStop)
                 {
