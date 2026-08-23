@@ -44,6 +44,11 @@ namespace UDM_10.Client
             AutoSize = true,
             Location = new Point(12, 50)
         };
+        private Label lblWaiting = new() { AutoSize = true, Font = new Font("Segoe Fluent Icons", 9.5f, FontStyle.Bold), ForeColor = Color.FromArgb(202, 138, 4) };
+        private Label lblUploading = new() { AutoSize = true, Font = new Font("Segoe Fluent Icons", 9.5f, FontStyle.Bold), ForeColor = Color.FromArgb(37, 99, 235) };
+        private Label lblCompleted = new() { AutoSize = true, Font = new Font("Segoe Fluent Icons", 9.5f, FontStyle.Bold), ForeColor = Color.FromArgb(22, 163, 74) };
+        private Label lblFailed = new() { AutoSize = true, Font = new Font("Segoe Fluent Icons", 9.5f, FontStyle.Bold), ForeColor = Color.FromArgb(185, 28, 28) };
+        private Label lblCancelled = new() { AutoSize = true, Font = new Font("Segoe Fluent Icons", 9.5f, FontStyle.Bold), ForeColor = TextMutedColor };
         public MainForm()
         {
             InitializeComponent();
@@ -59,6 +64,12 @@ namespace UDM_10.Client
             topPanel.Controls.Add(chkSimulateDisconnect);
             topPanel.Controls.Add(lblLogo);
             topPanel.Controls.Add(lblLogoSub);
+            bottomPanel.Controls.Add(lblWaiting);
+            bottomPanel.Controls.Add(lblUploading);
+            bottomPanel.Controls.Add(lblCompleted);
+            bottomPanel.Controls.Add(lblFailed);
+            bottomPanel.Controls.Add(lblCancelled);
+            lblQueueStatus.Visible = false;
             lblLogo.BringToFront();
             lblLogoSub.BringToFront();
 
@@ -198,6 +209,9 @@ namespace UDM_10.Client
                     Alignment = DataGridViewContentAlignment.MiddleCenter
                 }
             });
+            gridFiles.Columns[0].HeaderCell.Style.BackColor = AccentColor;
+            gridFiles.Columns[0].HeaderCell.Style.ForeColor = Color.White;
+            gridFiles.Columns[0].HeaderCell.Style.Alignment =DataGridViewContentAlignment.MiddleCenter;
             gridFiles.CellPainting += gridFiles_CellPainting;
             gridFiles.CellContentClick += gridFiles_CellContentClick;
             gridFiles.CellFormatting += gridFiles_CellFormatting;
@@ -233,16 +247,26 @@ namespace UDM_10.Client
             int failed = _uploadManager.Files.Count(f => f.Status == UploadStatus.Failed);
             int cancelled = _uploadManager.Files.Count(f => f.Status == UploadStatus.Cancelled);
 
-            lblTotalFiles.Text = $"📁 {total} file ({FileUploadItem.FormatBytes(totalBytes)})";
-            lblQueueStatus.Text =
-                $"⏳ Chờ: {waiting}   " +
-                $"⬆ Đang tải: {uploading}   " +
-                $"✓ Xong: {completed}   " +
-                $"⚠ Lỗi: {failed}   " +
-                $"✕ Đã hủy: {cancelled}";
+            lblTotalFiles.Text = $"\uE7C3  {total} file ({FileUploadItem.FormatBytes(totalBytes)})";
+            lblTotalFiles.Font = new Font("Segoe Fluent Icons", 9.5f);
+            lblTotalFiles.ForeColor = TextDarkColor;
+
+            lblWaiting.Text = $"\uE72C Chờ: {waiting}";
+            lblUploading.Text = $"\uE896 Đang tải: {uploading}";
+            lblCompleted.Text = $"\uE73E Xong: {completed}";
+            lblFailed.Text = $"\uE783 Lỗi: {failed}";
+            lblCancelled.Text = $"\uE711 Đã hủy: {cancelled}";
+
             lblConcurrencyInfo.Text = $"Đồng thời tối đa: {UploadManager.MaxConcurrentUploads} file";
-            lblQueueStatus.Location = new Point(lblTotalFiles.Right + 24, lblTotalFiles.Top);
-            lblConcurrencyInfo.Location = new Point(lblQueueStatus.Right + 24, lblQueueStatus.Top);
+
+            // CANH LAI TOAN BO THEO MEP PHAI CUA CONTROL TRUOC - noi duoi nhau, khong dung so co dinh
+            int y = lblTotalFiles.Top;
+            lblWaiting.Location = new Point(lblTotalFiles.Right + 24, y);
+            lblUploading.Location = new Point(lblWaiting.Right + 20, y);
+            lblCompleted.Location = new Point(lblUploading.Right + 20, y);
+            lblFailed.Location = new Point(lblCompleted.Right + 20, y);
+            lblCancelled.Location = new Point(lblFailed.Right + 20, y);
+            lblConcurrencyInfo.Location = new Point(lblCancelled.Right + 24, y);
             btnCancelAll.Location = new Point(lblConcurrencyInfo.Right + 24, 18);
             btnRetryAllFailed.Location = new Point(btnCancelAll.Right + 10, 18);
             btnDeleteAll.Location = new Point(btnRetryAllFailed.Right + 10, 18);
