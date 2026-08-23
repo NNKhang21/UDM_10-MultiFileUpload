@@ -40,6 +40,9 @@
             lblConcurrencyInfo = new Label();
             gridFiles = new DataGridView();
             bottomPanel = new Panel();
+            btnCancelAll = new Button();
+            btnRetryAllFailed = new Button();
+            btnDeleteAll = new Button();
             topPanel.SuspendLayout();
             dropZone.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)gridFiles).BeginInit();
@@ -48,7 +51,7 @@
             // 
             // topPanel
             // 
-            topPanel.BackColor = Color.FromArgb(142, 229, 238);
+            topPanel.BackColor = Color.FromArgb(248, 250, 251);
             topPanel.Controls.Add(btnUploadAll);
             topPanel.Controls.Add(btnUploadSelected);
             topPanel.Controls.Add(btnTestStatus);
@@ -97,7 +100,7 @@
             dropZone.BackColor = Color.White;
             dropZone.Controls.Add(dropLabel);
             dropZone.Controls.Add(btnChooseFiles);
-            dropZone.Location = new Point(0, 0);
+            dropZone.Location = new Point(90, 0);
             dropZone.Name = "dropZone";
             dropZone.Size = new Size(420, 96);
             dropZone.TabIndex = 0;
@@ -107,9 +110,9 @@
             // 
             // dropLabel
             // 
-            dropLabel.Location = new Point(0, 28);
+            dropLabel.Location = new Point(3, 28);
             dropLabel.Name = "dropLabel";
-            dropLabel.Size = new Size(420, 24);
+            dropLabel.Size = new Size(414, 24);
             dropLabel.TabIndex = 0;
             dropLabel.Text = "Kéo && thả file vào đây";
             dropLabel.TextAlign = ContentAlignment.MiddleCenter;
@@ -156,47 +159,11 @@
             lblConcurrencyInfo.TabIndex = 4;
             lblConcurrencyInfo.Text = "label1";
             // 
-            // btnCancelAll
-            // 
-            btnCancelAll = new Button();
-            btnCancelAll.Location = new Point(750, 18);
-            btnCancelAll.Name = "btnCancelAll";
-            btnCancelAll.AutoSize = true;
-            btnCancelAll.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            btnCancelAll.TabIndex = 7;
-            btnCancelAll.Text = "Hủy tất cả";
-            btnCancelAll.UseVisualStyleBackColor = true;
-            btnCancelAll.Click += btnCancelAll_Click;
-            // 
-            // btnRetryAllFailed
-            // 
-            btnRetryAllFailed = new Button();
-            btnRetryAllFailed.Location = new Point(840, 18);
-            btnRetryAllFailed.Name = "btnRetryAllFailed";
-            btnRetryAllFailed.AutoSize = true;
-            btnRetryAllFailed.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            btnRetryAllFailed.TabIndex = 8;
-            btnRetryAllFailed.Text = "Thử lại lỗi";
-            btnRetryAllFailed.UseVisualStyleBackColor = true;
-            btnRetryAllFailed.Click += btnRetryAllFailed_Click;
-            // 
-            // btnDeleteAll
-            // 
-            btnDeleteAll = new Button();
-            btnDeleteAll.Location = new Point(930, 18);
-            btnDeleteAll.Name = "btnDeleteAll";
-            btnDeleteAll.AutoSize = true;
-            btnDeleteAll.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            btnDeleteAll.TabIndex = 9;
-            btnDeleteAll.Text = "Xóa tất cả";
-            btnDeleteAll.UseVisualStyleBackColor = true;
-            btnDeleteAll.Click += btnDeleteAll_Click;
-            // 
             // gridFiles
             // 
             gridFiles.AllowUserToAddRows = false;
             gridFiles.AllowUserToDeleteRows = false;
-            gridFiles.BackgroundColor = Color.AliceBlue;
+            gridFiles.BackgroundColor = Color.White;
             gridFiles.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             gridFiles.Dock = DockStyle.Fill;
             gridFiles.Location = new Point(0, 110);
@@ -210,7 +177,7 @@
             // 
             // bottomPanel
             // 
-            bottomPanel.BackColor = Color.FromArgb(142, 229, 238);
+            bottomPanel.BackColor = Color.FromArgb(248, 250, 251);
             bottomPanel.Controls.Add(lblQueueStatus);
             bottomPanel.Controls.Add(lblTotalFiles);
             bottomPanel.Controls.Add(lblConcurrencyInfo);
@@ -223,6 +190,42 @@
             bottomPanel.Padding = new Padding(8);
             bottomPanel.Size = new Size(1150, 70);
             bottomPanel.TabIndex = 2;
+            // 
+            // btnCancelAll
+            // 
+            btnCancelAll.AutoSize = true;
+            btnCancelAll.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            btnCancelAll.Location = new Point(750, 18);
+            btnCancelAll.Name = "btnCancelAll";
+            btnCancelAll.Size = new Size(86, 30);
+            btnCancelAll.TabIndex = 7;
+            btnCancelAll.Text = "Hủy tất cả";
+            btnCancelAll.UseVisualStyleBackColor = true;
+            btnCancelAll.Click += btnCancelAll_Click;
+            // 
+            // btnRetryAllFailed
+            // 
+            btnRetryAllFailed.AutoSize = true;
+            btnRetryAllFailed.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            btnRetryAllFailed.Location = new Point(840, 18);
+            btnRetryAllFailed.Name = "btnRetryAllFailed";
+            btnRetryAllFailed.Size = new Size(85, 30);
+            btnRetryAllFailed.TabIndex = 8;
+            btnRetryAllFailed.Text = "Thử lại lỗi";
+            btnRetryAllFailed.UseVisualStyleBackColor = true;
+            btnRetryAllFailed.Click += btnRetryAllFailed_Click;
+            // 
+            // btnDeleteAll
+            // 
+            btnDeleteAll.AutoSize = true;
+            btnDeleteAll.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            btnDeleteAll.Location = new Point(930, 18);
+            btnDeleteAll.Name = "btnDeleteAll";
+            btnDeleteAll.Size = new Size(86, 30);
+            btnDeleteAll.TabIndex = 9;
+            btnDeleteAll.Text = "Xóa tất cả";
+            btnDeleteAll.UseVisualStyleBackColor = true;
+            btnDeleteAll.Click += btnDeleteAll_Click;
             // 
             // MainForm
             // 

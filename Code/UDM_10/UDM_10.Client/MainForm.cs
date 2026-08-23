@@ -28,6 +28,22 @@ namespace UDM_10.Client
             Location = new Point(900, 40),
             Checked = false
         };
+        private Label lblLogo = new()
+        {
+            Text = "UTH",
+            Font = new Font("Segoe UI", 20f, FontStyle.Bold),
+            ForeColor = ColorTranslator.FromHtml("#0F766E"),
+            AutoSize = true,
+            Location = new Point(12, 10)
+        };
+        private Label lblLogoSub = new()
+        {
+            Text = "Upload Manager",
+            Font = new Font("Segoe UI", 8f),
+            ForeColor = TextMutedColor,
+            AutoSize = true,
+            Location = new Point(12, 50)
+        };
         public MainForm()
         {
             InitializeComponent();
@@ -41,6 +57,18 @@ namespace UDM_10.Client
 
             topPanel.Controls.Add(chkSimulateError);
             topPanel.Controls.Add(chkSimulateDisconnect);
+            topPanel.Controls.Add(lblLogo);
+            topPanel.Controls.Add(lblLogoSub);
+            lblLogo.BringToFront();
+            lblLogoSub.BringToFront();
+
+            int rowStartX = Math.Max(lblLogo.Right, lblLogoSub.Right) + 20;
+            dropZone.Location = new Point(rowStartX, 0);
+            btnTestStatus.Location = new Point(dropZone.Right + 16, 24);
+            btnUploadAll.Location = new Point(btnTestStatus.Right + 16, 16);
+            btnUploadSelected.Location = new Point(btnTestStatus.Right + 16, 60);
+            chkSimulateError.Location = new Point(btnUploadAll.Right + 40, 15);
+            chkSimulateDisconnect.Location = new Point(btnUploadAll.Right + 40, 40);
             _uploadManager = new UploadManager(new FakeUploader(
                 () => chkSimulateError.Checked,
                 () => chkSimulateDisconnect.Checked));
