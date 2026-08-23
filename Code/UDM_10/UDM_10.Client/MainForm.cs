@@ -8,9 +8,9 @@ namespace UDM_10.Client
     {
         private readonly UploadManager _uploadManager;
         private readonly BindingSource _fileBindingSource = new();
-        private static readonly Color AccentColor = ColorTranslator.FromHtml("#4F6BED");
-        private static readonly Color AccentDarkColor = ColorTranslator.FromHtml("#3D54C4");
-        private static readonly Color AccentSoftColor = ColorTranslator.FromHtml("#EEF1FD");
+        private static readonly Color AccentColor = ColorTranslator.FromHtml("#0F766E");
+        private static readonly Color AccentDarkColor = ColorTranslator.FromHtml("#0B5A54");
+        private static readonly Color AccentSoftColor = ColorTranslator.FromHtml("#E6F4F3");
         private static readonly Color BorderColor = ColorTranslator.FromHtml("#E2E4EA");
         private static readonly Color TextMutedColor = ColorTranslator.FromHtml("#6B7280");
         private static readonly Color TextDarkColor = ColorTranslator.FromHtml("#374151");
