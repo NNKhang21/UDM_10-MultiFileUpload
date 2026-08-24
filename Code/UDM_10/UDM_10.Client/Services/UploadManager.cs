@@ -22,7 +22,18 @@ public class UploadManager
         if (item.Status != UploadStatus.Uploading) return;
         item.Cts?.Cancel();
     }
-    
+    // Cancel tất cả file đang Uploading (khi user bấm nút Disconnect toàn cục)
+    public void CancelAll()
+    {
+        foreach (var item in Files)
+        {
+            if (item.Status == UploadStatus.Uploading)
+            {
+                try { item.Cts?.Cancel(); } catch { }
+            }
+        }
+    }
+
     public UploadManager(IFileUploader uploader)
     {
         _uploader = uploader;
@@ -143,12 +154,12 @@ public class UploadManager
         }
     }
 
-    public void CancelAll()
+   /* public void CancelAll()
     {
         var uploading = Files.Where(f => f.Status == UploadStatus.Uploading).ToList();
         foreach (var item in uploading)
             CancelUpload(item);
-    }
+    }*/
 
     public async Task RetryAllFailedAsync()
     {

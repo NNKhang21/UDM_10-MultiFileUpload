@@ -636,9 +636,19 @@ namespace UDM_10.Client
 
         private void btnDisconnect_Click(object? sender, EventArgs e)
         {
+            // BƯỚC 1 (QUAN TRỌNG sau refactor): Cancel ngay lập tức TẤT CẢ file đang upload.
+            // Trước đây 5 files dùng chung 1 TcpClient → gọi Disconnect() đóng cái đó là 5 file cùng chết.
+            // Sau refactor mỗi file có 1 TcpClient riêng biệt → phải hủy qua CancellationToken của từng item.
+            _uploadManager.CancelAll();
+
+            // BƯỚC 2: Gọi Disconnect() (giữ tương thích API cũ, hiện tại là no-op nhưng giữ cho code clear)
             _networkClient?.Disconnect();
+
+            // BƯỚC 3: Cập nhật UI
             lblConnectionStatus.Text = "● Đã ngắt kết nối";
             lblConnectionStatus.ForeColor = Color.Gray;
+
+            // BƯỚC 4: Chuyển sang FakeUploader (mode offline)
             _uploadManager.SwitchUploader(new FakeUploader(() => chkSimulateError.Checked, () => chkSimulateDisconnect.Checked));
         }
         private async void gridFiles_CellContentClick(object? sender, DataGridViewCellEventArgs e)
