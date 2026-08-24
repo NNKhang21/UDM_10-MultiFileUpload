@@ -1,49 +1,75 @@
-using System;
+﻿namespace UDM_10.Server;
+
 using System.IO;
+using System.Linq;
 
-namespace UDM_10.Server
+public static class Logger
 {
-    // Logger riêng cho UDM_10.Server (Program.cs, ClientSession.cs gọi trực
-    // tiếp Logger.Xxx() không qua using -> phải cùng namespace UDM_10.Server).
-    //
-    // NOTE: khác với UDM_10.Client.Logging.Logger (chỉ có Init/Info/Error),
-    // bản này có thêm Warn() vì ClientSession.cs cần dùng.
-    public static class Logger
+    private static readonly object _lock = new();
+    private static string _logFilePath = "logs/server.log";
+
+    public static void Init(string logFilePath)
     {
-        private static readonly string LogFolder = "logs";
-        private static readonly string LogFile = Path.Combine(LogFolder, "server.log");
-        private static readonly object _lock = new();
+        _logFilePath = logFilePath;
+        var dir = Path.GetDirectoryName(_logFilePath);
 
-        public static void Init()
+        if (!string.IsNullOrEmpty(dir))
+            Directory.CreateDirectory(dir);
+    }
+
+    // OVERLOAD ĐỂ CÁC FILE KHÁC CÓ THỂ GỌI ĐƠN GIẢN 
+    public static void Init()
+    {
+        Init("logs/server.log");
+    }
+
+    public static void Info(string message)
+    {
+        Info("GENERAL", message);
+    }
+
+    public static void Warn(string message)
+    {
+        Warn("GENERAL", message);
+    }
+
+    public static void Error(string message)
+    {
+        Error("GENERAL", message);
+    }
+
+    //CÁC HÀM LOG
+
+    public static void Info(string evt, string message,
+        params (string key, object value)[] fields)
+        => Write("INFO", evt, message, fields);
+
+    public static void Warn(string evt, string message,
+        params (string key, object value)[] fields)
+        => Write("WARN", evt, message, fields);
+
+    public static void Error(string evt, string message,
+        params (string key, object value)[] fields)
+        => Write("ERROR", evt, message, fields);
+
+    private static void Write(string level, string evt, string message,
+        (string key, object value)[] fields)
+    {
+        var kv = string.Join(" ",
+            fields.Select(f => $"{f.key}={f.value}"));
+
+        var line =
+            $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} " +
+            $"[{level}] [{evt}] {message}" +
+            (kv.Length > 0 ? $" | {kv}" : "");
+
+        lock (_lock)
         {
-            if (!Directory.Exists(LogFolder))
-            {
-                Directory.CreateDirectory(LogFolder);
-            }
-
-            if (!File.Exists(LogFile))
-            {
-                File.Create(LogFile).Close();
-            }
-        }
-
-        public static void Info(string message) => WriteLog("INFO", message);
-
-        public static void Warn(string message) => WriteLog("WARN", message);
-
-        public static void Error(string message) => WriteLog("ERROR", message);
-
-        private static void WriteLog(string level, string message)
-        {
-            string log = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{level}] {message}";
-
-            // Console.WriteLine + File.AppendAllText có thể bị gọi đồng thời
-            // từ nhiều ClientSession -> khoá lại để tránh log lẫn dòng nhau.
-            lock (_lock)
-            {
-                Console.WriteLine(log);
-                File.AppendAllText(LogFile, log + Environment.NewLine);
-            }
+            Console.WriteLine(line);
+            File.AppendAllText(
+                _logFilePath,
+                line + Environment.NewLine
+            );
         }
     }
 }
