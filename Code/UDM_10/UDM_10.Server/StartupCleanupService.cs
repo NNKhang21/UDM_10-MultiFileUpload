@@ -2,50 +2,117 @@ using System;
 using System.IO;
 using UDM_10.Shared.Config;
 using UDM_10.Shared.Protocol;
-namespace UDM_10.Server;
 
-// Week 1 skeleton - StartupCleanupService (logic not implemented yet)
+namespace UDM_10.Server;
+// Don rac ".part" con sot lai tu lan chay truoc, chay luc Server khoi dong
 public static class StartupCleanupService
 {
-    #region Validation
-
+     // Check thu muc upload co ton tai va ghi duoc khong, tu tao neu chua co
     public static bool ValidateUploadDirectory(ServerConfig config)
     {
-        // TODO: check if upload directory exists, create it if not,
-        // then write a test file and delete it to make sure the directory is writable
-        return false;
+        if (!Directory.Exists(config.UploadDirectory))
+        {
+            try
+            {
+                Directory.CreateDirectory(config.UploadDirectory);
+                Logger.Info(ServerEvent.Cleanup, "Upload directory created", (key: "path", value: (object)config.UploadDirectory));
+            }
+            catch (Exception ex)
+            {
+                if (ex is IOException || ex is UnauthorizedAccessException)
+                {
+                    Logger.Warn(ServerEvent.Cleanup, "Could not create upload directory", (key: "path", value: (object)config.UploadDirectory), (key: "error", value: (object)ex.Message));
+                    return false;
+                }
+
+                throw;
+            }
+        }
+        string testFile = Path.Combine(config.UploadDirectory, ".writetest");
+        try
+        {
+            File.WriteAllText(testFile, "");
+            File.Delete(testFile);
+        }
+        catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+        {
+            Logger.Warn(ServerEvent.Cleanup, "Upload directory not writable", (key: "path", value: (object)config.UploadDirectory), (key: "error", value: (object)ex.Message));
+            return false;
+        }
+        return true;
     }
 
-    #endregion
-
-    #region Cleanup
-
+    // Quet va xoa toan bo file .part mo coi, gap file bi khoa thi bo qua chu khong dung lai
     public static int CleanupPartialFiles(ServerConfig config)
     {
-         // TODO: if UploadDirectory does not exist, return 0
-        // TODO: scan all "*.part" files in UploadDirectory, delete each one,
-        // skip locked files instead of stopping, count how many files were deleted
-        return 0;
+        if (!Directory.Exists(config.UploadDirectory)) return 0;
+        string[] partFiles = Directory.GetFiles(config.UploadDirectory, "*.part");
+        int deletedCount = 0;
+
+        foreach (string partPath in partFiles)
+        {
+            try
+            {
+                File.Delete(partPath);
+                deletedCount++;
+                Logger.Info(ServerEvent.Cleanup, "Cleanup success", (key: "path", value: (object)partPath));
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                // File dang bi khoa, bo qua va xu ly file tiep theo
+                Logger.Warn(ServerEvent.Cleanup, "Cleanup fail", (key: "path", value: (object)partPath), (key: "error", value: (object)ex.Message));
+            }
+        }
+        return deletedCount;
     }
 
+     // Xoa cac thu muc con rong ben trong thu muc upload
     public static int CleanupEmptyFolders(ServerConfig config)
     {
-       // TODO: if UploadDirectory does not exist, return 0
-        // TODO: get all subfolders (AllDirectories), sort by path length descending
-        // (delete child folders before parent folders), delete empty ones, count how many were deleted
-        return 0;
+        if (!Directory.Exists(config.UploadDirectory)) return 0;
+
+        string[] allFolders = Directory.GetDirectories(config.UploadDirectory,"*",SearchOption.AllDirectories);
+        for (int i = 0; i < allFolders.Length - 1; i++)
+        {
+            for (int j = i + 1; j < allFolders.Length; j++)
+            {
+                if (allFolders[i].Length < allFolders[j].Length)
+                {
+                    string temp = allFolders[i];
+                    allFolders[i] = allFolders[j];
+                    allFolders[j] = temp;
+                }
+            }
+        }
+        int deletedCount = 0;
+        foreach (string folder in allFolders)
+        {
+            if (Directory.GetFileSystemEntries(folder).Length != 0)
+                continue;
+            try
+            {
+                Directory.Delete(folder);
+                deletedCount++;
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                Logger.Warn(ServerEvent.Cleanup, "Could not delete folder", (key: "path", value: (object)folder), (key: "error", value: (object)ex.Message));
+            }
+        }
+
+        return deletedCount;
     }
-
-    #endregion
-
-    #region Orchestration
-
+   /// Chay cac buoc don rac o tren, goi 1 lan luc Server khoi dong.
     public static (int FilesDeleted, int FoldersDeleted) RunStartupCleanup(ServerConfig config)
     {
-        // TODO: call ValidateUploadDirectory first, if it fails return (0,0) and log an error,
-        // otherwise call CleanupPartialFiles then CleanupEmptyFolders, log the result, return the tuple
-        return (0, 0);
+        if (!ValidateUploadDirectory(config))
+        {
+            Logger.Error(ServerEvent.Cleanup, "Upload directory invalid, cannot start server", (key: "path", value: (object)config.UploadDirectory));
+            throw new InvalidOperationException($"Upload directory '{config.UploadDirectory}' is invalid or not writable.");
+        }
+        int filesDeleted = CleanupPartialFiles(config);
+        int foldersDeleted = CleanupEmptyFolders(config);
+        Logger.Info(ServerEvent.Cleanup, $"Startup cleanup done: {filesDeleted} file(s), {foldersDeleted} folder(s) removed");
+        return (filesDeleted, foldersDeleted);
     }
-
-    #endregion
 }
