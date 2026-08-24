@@ -3,26 +3,20 @@ using UDM_10.Client.Models;
 using System.IO;
 namespace UDM_10.Client.Services;
 
-public record UploadOutcome(
-    bool Success, 
-    string? ServerFileName, 
-    string? Message);
-public interface IFileUploader
-{
-    Task<UploadOutcome> UploadFileAsync(
-        string filePath, 
-        IProgress<double> progress, 
-        CancellationToken ct);
-}
 public class UploadManager
 {
     public BindingList<FileUploadItem> Files { get; } = new();
 
-    private readonly IFileUploader _uploader;
-    private readonly UploadQueue _uploadQueue;
+    private  IFileUploader _uploader;
+    private  UploadQueue _uploadQueue;
     private const int MaxFiles = 50;
     private const int MaxFileSizeMb = 150;
-    public const int MaxConcurrentUploads = 5; 
+    public const int MaxConcurrentUploads = 5;
+    public void SwitchUploader(IFileUploader uploader)
+    {
+        _uploader = uploader;
+        _uploadQueue = new UploadQueue(uploader, MaxConcurrentUploads);
+    }
     public void CancelUpload(FileUploadItem item)
     {
         if (item.Status != UploadStatus.Uploading) return;

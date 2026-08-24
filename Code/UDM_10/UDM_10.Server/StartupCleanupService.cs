@@ -15,18 +15,18 @@ public static class StartupCleanupService
             try
             {
                 Directory.CreateDirectory(config.UploadDirectory);
-                Logger.Info(ServerEvent.Cleanup, "Upload directory created", ("path", config.UploadDirectory));
+                Logger.Info(ServerEvent.Cleanup, "Upload directory created", (key: "path", value: (object)config.UploadDirectory));
             }
             catch (Exception ex)
-{
-    if (ex is IOException || ex is UnauthorizedAccessException)
-    {
-        Logger.Warn(ServerEvent.Cleanup, "Could not create upload directory", ("path", config.UploadDirectory), ("error", ex.Message));
-        return false;
-    }
+            {
+                if (ex is IOException || ex is UnauthorizedAccessException)
+                {
+                    Logger.Warn(ServerEvent.Cleanup, "Could not create upload directory", (key: "path", value: (object)config.UploadDirectory), (key: "error", value: (object)ex.Message));
+                    return false;
+                }
 
-    throw;
-}
+                throw;
+            }
         }
         string testFile = Path.Combine(config.UploadDirectory, ".writetest");
         try
@@ -36,7 +36,7 @@ public static class StartupCleanupService
         }
         catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
         {
-            Logger.Warn(ServerEvent.Cleanup, "Upload directory not writable",("path", config.UploadDirectory), ("error", ex.Message));
+            Logger.Warn(ServerEvent.Cleanup, "Upload directory not writable", (key: "path", value: (object)config.UploadDirectory), (key: "error", value: (object)ex.Message));
             return false;
         }
         return true;
@@ -55,12 +55,12 @@ public static class StartupCleanupService
             {
                 File.Delete(partPath);
                 deletedCount++;
-                Logger.Info(ServerEvent.Cleanup, "Cleanup success", ("path", partPath));
+                Logger.Info(ServerEvent.Cleanup, "Cleanup success", (key: "path", value: (object)partPath));
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
             {
                 // File dang bi khoa, bo qua va xu ly file tiep theo
-                Logger.Warn(ServerEvent.Cleanup, "Cleanup fail", ("path", partPath), ("error", ex.Message));
+                Logger.Warn(ServerEvent.Cleanup, "Cleanup fail", (key: "path", value: (object)partPath), (key: "error", value: (object)ex.Message));
             }
         }
         return deletedCount;
@@ -73,17 +73,17 @@ public static class StartupCleanupService
 
         string[] allFolders = Directory.GetDirectories(config.UploadDirectory,"*",SearchOption.AllDirectories);
         for (int i = 0; i < allFolders.Length - 1; i++)
-{
-    for (int j = i + 1; j < allFolders.Length; j++)
-    {
-        if (allFolders[i].Length < allFolders[j].Length)
         {
-            string temp = allFolders[i];
-            allFolders[i] = allFolders[j];
-            allFolders[j] = temp;
+            for (int j = i + 1; j < allFolders.Length; j++)
+            {
+                if (allFolders[i].Length < allFolders[j].Length)
+                {
+                    string temp = allFolders[i];
+                    allFolders[i] = allFolders[j];
+                    allFolders[j] = temp;
+                }
+            }
         }
-    }
-}
         int deletedCount = 0;
         foreach (string folder in allFolders)
         {
@@ -96,7 +96,7 @@ public static class StartupCleanupService
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
             {
-                Logger.Warn(ServerEvent.Cleanup, "Could not delete folder", ("path", folder), ("error", ex.Message));
+                Logger.Warn(ServerEvent.Cleanup, "Could not delete folder", (key: "path", value: (object)folder), (key: "error", value: (object)ex.Message));
             }
         }
 
@@ -107,7 +107,7 @@ public static class StartupCleanupService
     {
         if (!ValidateUploadDirectory(config))
         {
-            Logger.Error(ServerEvent.Cleanup, "Upload directory invalid, cannot start server", ("path", config.UploadDirectory));
+            Logger.Error(ServerEvent.Cleanup, "Upload directory invalid, cannot start server", (key: "path", value: (object)config.UploadDirectory));
             throw new InvalidOperationException($"Upload directory '{config.UploadDirectory}' is invalid or not writable.");
         }
         int filesDeleted = CleanupPartialFiles(config);

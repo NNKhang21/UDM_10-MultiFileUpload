@@ -8,6 +8,12 @@ namespace UDM_10.Client
     {
         private readonly UploadManager _uploadManager;
         private readonly BindingSource _fileBindingSource = new();
+        private TextBox txtServerIp = new() { Text = "127.0.0.1", Width = 100 };
+        private TextBox txtPort = new() { Text = "9000", Width = 60 };
+        private Button btnConnect = new() { Text = "Connect", AutoSize = true };
+        private Button btnDisconnect = new() { Text = "Disconnect", AutoSize = true };
+        private Label lblConnectionStatus = new() { Text = "● Chưa kết nối", AutoSize = true, ForeColor = Color.Gray };
+        private NetworkClient? _networkClient;
         private static readonly Color AccentColor = ColorTranslator.FromHtml("#0F766E");
         private static readonly Color AccentDarkColor = ColorTranslator.FromHtml("#0B5A54");
         private static readonly Color AccentSoftColor = ColorTranslator.FromHtml("#E6F4F3");
@@ -64,6 +70,11 @@ namespace UDM_10.Client
             topPanel.Controls.Add(chkSimulateDisconnect);
             topPanel.Controls.Add(lblLogo);
             topPanel.Controls.Add(lblLogoSub);
+            topPanel.Controls.Add(txtServerIp);
+            topPanel.Controls.Add(txtPort);
+            topPanel.Controls.Add(btnConnect);
+            topPanel.Controls.Add(btnDisconnect);
+            topPanel.Controls.Add(lblConnectionStatus);
             bottomPanel.Controls.Add(lblWaiting);
             bottomPanel.Controls.Add(lblUploading);
             bottomPanel.Controls.Add(lblCompleted);
@@ -73,13 +84,39 @@ namespace UDM_10.Client
             lblLogo.BringToFront();
             lblLogoSub.BringToFront();
 
+            /* int rowStartX = Math.Max(lblLogo.Right, lblLogoSub.Right) + 20;
+             dropZone.Location = new Point(rowStartX, 0);
+             txtServerIp.Location = new Point(dropZone.Right + 20, 10);
+             txtPort.Location = new Point(txtServerIp.Right + 10, 10);
+             btnConnect.Location = new Point(txtPort.Right + 10, 8);
+             btnDisconnect.Location = new Point(btnConnect.Right + 10, 8);
+             lblConnectionStatus.Location = new Point(btnDisconnect.Right + 20, 12);
+             btnTestStatus.Location = new Point(dropZone.Right + 16, 24);
+             btnUploadAll.Location = new Point(btnTestStatus.Right + 16, 16);
+             btnUploadSelected.Location = new Point(btnTestStatus.Right + 16, 60);
+             chkSimulateError.Location = new Point(btnUploadAll.Right + 40, 15);
+             chkSimulateDisconnect.Location = new Point(btnUploadAll.Right + 40, 40);*/
             int rowStartX = Math.Max(lblLogo.Right, lblLogoSub.Right) + 20;
+
             dropZone.Location = new Point(rowStartX, 0);
-            btnTestStatus.Location = new Point(dropZone.Right + 16, 24);
-            btnUploadAll.Location = new Point(btnTestStatus.Right + 16, 16);
-            btnUploadSelected.Location = new Point(btnTestStatus.Right + 16, 60);
-            chkSimulateError.Location = new Point(btnUploadAll.Right + 40, 15);
-            chkSimulateDisconnect.Location = new Point(btnUploadAll.Right + 40, 40);
+
+            // ===== HÀNG 1: KẾT NỐI SERVER =====
+            txtServerIp.Location = new Point(dropZone.Right + 20, 10);
+            txtPort.Location = new Point(txtServerIp.Right + 10, 10);
+            btnConnect.Location = new Point(txtPort.Right + 10, 8);
+            btnDisconnect.Location = new Point(btnConnect.Right + 10, 8);
+            btnConnect.Click += btnConnect_Click;
+            btnDisconnect.Click += btnDisconnect_Click;
+            lblConnectionStatus.Location = new Point(btnDisconnect.Right + 20, 12);
+
+            // ===== HÀNG 2: CÁC NÚT UPLOAD =====
+            btnTestStatus.Location = new Point(dropZone.Right + 16, 55);
+            btnUploadAll.Location = new Point(btnTestStatus.Right + 16, 48);
+            btnUploadSelected.Location = new Point(btnTestStatus.Right + 16, 82);
+
+            // ===== DEBUG =====
+            chkSimulateError.Location = new Point(btnUploadAll.Right + 40, 48);
+            chkSimulateDisconnect.Location = new Point(btnUploadAll.Right + 40, 75);
             _uploadManager = new UploadManager(new FakeUploader(
                 () => chkSimulateError.Checked,
                 () => chkSimulateDisconnect.Checked));
@@ -99,8 +136,8 @@ namespace UDM_10.Client
             gridFiles.ColumnHeadersDefaultCellStyle.ForeColor = TextDarkColor;
             gridFiles.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 10f, FontStyle.Bold);
             gridFiles.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
-            gridFiles.ColumnHeadersDefaultCellStyle.SelectionBackColor = Color.White;   
-            gridFiles.ColumnHeadersDefaultCellStyle.SelectionForeColor = TextDarkColor;      
+            gridFiles.ColumnHeadersDefaultCellStyle.SelectionBackColor = Color.White;
+            gridFiles.ColumnHeadersDefaultCellStyle.SelectionForeColor = TextDarkColor;
             gridFiles.ColumnHeadersHeight = 40;
             gridFiles.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
             gridFiles.DefaultCellStyle.SelectionBackColor = AccentSoftColor;
@@ -211,7 +248,7 @@ namespace UDM_10.Client
             });
             gridFiles.Columns[0].HeaderCell.Style.BackColor = AccentColor;
             gridFiles.Columns[0].HeaderCell.Style.ForeColor = Color.White;
-            gridFiles.Columns[0].HeaderCell.Style.Alignment =DataGridViewContentAlignment.MiddleCenter;
+            gridFiles.Columns[0].HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
             gridFiles.CellPainting += gridFiles_CellPainting;
             gridFiles.CellContentClick += gridFiles_CellContentClick;
             gridFiles.CellFormatting += gridFiles_CellFormatting;
@@ -539,7 +576,7 @@ namespace UDM_10.Client
         {
             var rect = new Rectangle(0, 0, dropZone.Width, dropZone.Height);
             using var clipPath = RoundedRect(rect, 12);
-            dropZone.Region = new Region(clipPath); 
+            dropZone.Region = new Region(clipPath);
 
             e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
             var borderRect = new Rectangle(1, 1, dropZone.Width - 3, dropZone.Height - 3);
@@ -553,6 +590,56 @@ namespace UDM_10.Client
             btnUploadAll.Enabled = false;
             await _uploadManager.UploadInBatchesAsync();
             btnUploadAll.Enabled = true;
+        }
+
+        private async void btnConnect_Click(object? sender, EventArgs e)
+        {
+            // Validate input
+            if (string.IsNullOrWhiteSpace(txtServerIp.Text))
+            {
+                MessageBox.Show("Vui lòng nhập IP Server.", "Thiếu thông tin",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            if (!int.TryParse(txtPort.Text, out int port) || port <= 0 || port > 65535)
+            {
+                MessageBox.Show("Port không hợp lệ (phải là số 1-65535).", "Port sai",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            btnConnect.Enabled = false;
+            try
+            {
+                _networkClient = new NetworkClient();
+                bool ok = await _networkClient.ConnectAsync(txtServerIp.Text, port);
+                if (ok)
+                {
+                    lblConnectionStatus.Text = $"● Đã kết nối {txtServerIp.Text}:{txtPort.Text}";
+                    lblConnectionStatus.ForeColor = Color.FromArgb(22, 163, 74);
+                    _uploadManager.SwitchUploader(_networkClient);
+                }
+                else
+                {
+                    string errMsg = _networkClient.LastError ?? "Kết nối thất bại.";
+                    lblConnectionStatus.Text = "● Kết nối thất bại";
+                    lblConnectionStatus.ForeColor = Color.FromArgb(185, 28, 28);
+                    MessageBox.Show(errMsg + "\n\n💡 Gợi ý:\n1. Đảm bảo Server đã chạy trước.\n2. Kiểm tra IP + Port đúng (mặc định: 127.0.0.1:9000).\n3. Tắt tường lửa nếu cần.",
+                        "Không thể kết nối Server", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            finally
+            {
+                btnConnect.Enabled = true;
+            }
+        }
+
+        private void btnDisconnect_Click(object? sender, EventArgs e)
+        {
+            _networkClient?.Disconnect();
+            lblConnectionStatus.Text = "● Đã ngắt kết nối";
+            lblConnectionStatus.ForeColor = Color.Gray;
+            _uploadManager.SwitchUploader(new FakeUploader(() => chkSimulateError.Checked, () => chkSimulateDisconnect.Checked));
         }
         private async void gridFiles_CellContentClick(object? sender, DataGridViewCellEventArgs e)
         {

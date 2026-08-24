@@ -145,7 +145,24 @@ namespace UDM_10.Shared.Protocol
             // Chuyển byte UTF-8 trở lại thành chuỗi JSON.
             return Encoding.UTF8.GetString(payload);
         }
+        // Overload ReadJsonAsync có idle timeout.
+        public static async Task<string?> ReadJsonAsync(
+            Stream stream,
+            CancellationToken token,
+            int idleTimeoutMs)
+        {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+            timeoutCts.CancelAfter(idleTimeoutMs);
 
+            try
+            {
+                return await ReadJsonAsync(stream, timeoutCts.Token);
+            }
+            catch (OperationCanceledException) when (!token.IsCancellationRequested)
+            {
+                throw new IOException($"Timeout: không nhận được dữ liệu trong {idleTimeoutMs}ms.");
+            }
+        }
         // =========================================================
         // READ RAW
         // =========================================================
@@ -285,16 +302,35 @@ namespace UDM_10.Shared.Protocol
                     .GetProperty("Type")
                     .GetInt32();
 
-            
 
-                if (message == null)
-                {
-                    throw new InvalidDataException(
-                        "Dữ liệu Protocol không hợp lệ: không thể deserialize message.");
-                }
+                MessageBase? message = type switch
+                {
+                    MessageType.UploadStart =>
+                        JsonSerializer.Deserialize<UploadStartMessage>(json),
 
-                return message;
-            }
+                    MessageType.UploadChunk =>
+                        JsonSerializer.Deserialize<UploadChunkMessage>(json),
+
+                    MessageType.UploadDone =>
+                        JsonSerializer.Deserialize<UploadDoneMessage>(json),
+
+                    MessageType.UploadStartAck or MessageType.UploadChunkAck =>
+                        JsonSerializer.Deserialize<AckMessage>(json),
+
+                    MessageType.UploadResult =>
+                        JsonSerializer.Deserialize<UploadResultMessage>(json),
+
+                    _ => throw new NotSupportedException(
+                        $"Không hỗ trợ deserialize MessageType = {type}")
+                };
+                if (message == null)
+                {
+                    throw new InvalidDataException(
+                        "Dữ liệu Protocol không hợp lệ: không thể deserialize message.");
+                }
+
+                return message;
+            }
             catch (JsonException ex)
             {
                 throw new InvalidDataException(

@@ -8,6 +8,7 @@ public static class ServerEvent
     public const string Connect = "CONNECT";
     public const string Disconnect = "DISCONNECT";
     public const string UploadStart = "UPLOAD_START";
+    public const string UploadChunk = "UPLOAD_CHUNK";
     public const string UploadAck = "UPLOAD_ACK";
     public const string UploadComplete = "UPLOAD_COMPLETE";
     public const string UploadIncomplete = "UPLOAD_INCOMPLETE";

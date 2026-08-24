@@ -20,21 +20,38 @@ namespace UDM_10.Client.Services
         private TcpClient? _client;
         private NetworkStream? _stream;
         private const int ReadWriteTimeoutMs = 15000;
+        private const int ConnectTimeoutMs = 5000;
 
+        public string? LastError { get; private set; }
         public async Task<bool> ConnectAsync(string ipAddress, int port)
         {
+            LastError = null;
             try
             {
                 Disconnect();
                 _client = new TcpClient();
                 _client.SendTimeout = ReadWriteTimeoutMs;
                 _client.ReceiveTimeout = ReadWriteTimeoutMs;
-                await _client.ConnectAsync(ipAddress, port);
+                using var cts = new CancellationTokenSource(ConnectTimeoutMs);
+                await _client.ConnectAsync(ipAddress, port, cts.Token);
                 _stream = _client.GetStream();
                 return true;
             }
-            catch (Exception)
+            catch (OperationCanceledException)
             {
+                LastError = $"Timeout: không thể kết nối tới {ipAddress}:{port} trong {ConnectTimeoutMs}ms. Đảm bảo Server đang chạy.";
+                Disconnect();
+                return false;
+            }
+            catch (SocketException ex)
+            {
+                LastError = $"Lỗi Socket ({ex.SocketErrorCode}): {ex.Message}. Có thể Server chưa chạy hoặc sai IP/Port.";
+                Disconnect();
+                return false;
+            }
+            catch (Exception ex)
+            {
+                LastError = $"Kết nối thất bại: {ex.Message}";
                 Disconnect();
                 return false;
             }

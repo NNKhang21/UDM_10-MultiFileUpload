@@ -188,7 +188,7 @@ private static readonly string[] _windowsReservedNames =
         $"Upload already exists: {start.TransferId}");
         }
 
-        Logger.Info(ServerEvent.UploadStart, "Upload begin", ("fileName", start.FileName), ("transferId", start.TransferId), ("expectedSize", start.FileSize));
+        Logger.Info(ServerEvent.UploadStart, "Upload begin", ("fileName", (object)start.FileName), ("transferId", (object)start.TransferId), ("expectedSize", (object)start.FileSize));
         return Task.CompletedTask;
     }
     // ---- GHI CHUNK ----
@@ -217,7 +217,7 @@ private static readonly string[] _windowsReservedNames =
             await context.PartFile.WriteAsync(buffer, ct);
             context.ReceivedSize += buffer.Length;
             context.NextChunkIndex++;
-            Logger.Info(ServerEvent.UploadChunk, "Chunk received",("transferId", context.TransferId), ("chunkIndex", chunk.ChunkIndex), ("size", buffer.Length));
+            Logger.Info(ServerEvent.UploadChunk, "Chunk received", (key: "transferId", value: (object)context.TransferId), (key: "chunkIndex", value: (object)chunk.ChunkIndex), (key: "size", value: (object)buffer.Length));
         }
         catch (OperationCanceledException)
         {
@@ -226,7 +226,7 @@ private static readonly string[] _windowsReservedNames =
         }
         catch (Exception ex)
         {
-            Logger.Error(ServerEvent.UploadIncomplete, "Upload failed", ("transferId", context.TransferId), ("fileName", context.FileName), ("error", ex.Message));
+            Logger.Error(ServerEvent.UploadIncomplete, "Upload failed", (key: "transferId", value: (object)context.TransferId), (key: "fileName", value: (object)context.FileName), (key: "error", value: (object)ex.Message));
             RollbackUpload(context);
             throw;
         }
@@ -272,20 +272,20 @@ private static readonly string[] _windowsReservedNames =
                 throw;
             RemoveContext(context.TransferId);
             DeletePartialFile(context.TargetPath);
-            Logger.Error(ServerEvent.UploadIncomplete,"Final file move failed; upload rolled back",("transferId", context.TransferId),("fileName", context.FileName),("error", ex.Message));
+            Logger.Error(ServerEvent.UploadIncomplete, "Final file move failed; upload rolled back", (key: "transferId", value: (object)context.TransferId), (key: "fileName", value: (object)context.FileName), (key: "error", value: (object)ex.Message));
 
-            return (false, string.Empty);
+                return (false, string.Empty);
         }
         string finalFileName = Path.GetFileName(context.TargetPath);
         RemoveContext(context.TransferId);
 
-        Logger.Info( ServerEvent.UploadComplete, "Upload finish", ("transferId", context.TransferId),("fileName", finalFileName), ("size", context.ReceivedSize));
-        return (true, finalFileName);
+            Logger.Info(ServerEvent.UploadComplete, "Upload finish", (key: "transferId", value: (object)context.TransferId), (key: "fileName", value: (object)finalFileName), (key: "size", value: (object)context.ReceivedSize));
+            return (true, finalFileName);
     }
     catch (InvalidDataException ex)
     {
-        Logger.Error(  ServerEvent.UploadIncomplete, "Upload validation failed",("transferId", context.TransferId),("fileName", context.FileName), ("error", ex.Message));
-        RollbackUpload(context);
+            Logger.Error(ServerEvent.UploadIncomplete, "Upload validation failed", (key: "transferId", value: (object)context.TransferId), (key: "fileName", value: (object)context.FileName), (key: "error", value: (object)ex.Message));
+            RollbackUpload(context);
         return (false, string.Empty);
     }
     catch (OperationCanceledException)
@@ -295,8 +295,8 @@ private static readonly string[] _windowsReservedNames =
     }
     catch (Exception ex)
     {
-        Logger.Error(ServerEvent.UploadIncomplete, "Upload failed", ("transferId", context.TransferId),("fileName", context.FileName), ("error", ex.Message));
-        RollbackUpload(context);
+            Logger.Error(ServerEvent.UploadIncomplete, "Upload failed", (key: "transferId", value: (object)context.TransferId), (key: "fileName", value: (object)context.FileName), (key: "error", value: (object)ex.Message));
+            RollbackUpload(context);
         throw;
     }
     finally
@@ -326,7 +326,7 @@ private static readonly string[] _windowsReservedNames =
             }
             try { context.PartFile.Dispose(); } catch { }
             DeletePartialFile(context.TargetPath);
-            Logger.Warn(ServerEvent.UploadIncomplete, "Upload aborted", ("transferId", transferId), ("fileName", context.FileName));
+            Logger.Warn(ServerEvent.UploadIncomplete, "Upload aborted", (key: "transferId", value: (object)transferId), (key: "fileName", value: (object)context.FileName));
             return true;
         }
         finally
@@ -372,7 +372,7 @@ private static readonly string[] _windowsReservedNames =
         if (!removed) return;
         try { context.PartFile.Dispose(); } catch { }
         DeletePartialFile(context.TargetPath);
-        Logger.Warn(ServerEvent.Cleanup, "Upload rollback",("transferId", context.TransferId), ("fileName", context.FileName));
+        Logger.Warn(ServerEvent.Cleanup, "Upload rollback", (key: "transferId", value: (object)context.TransferId), (key: "fileName", value: (object)context.FileName));
     }
 
     // Xoa file ".part", dung chung cho cac ham rollback/abort o tren.
@@ -389,7 +389,7 @@ private static readonly string[] _windowsReservedNames =
         catch (Exception ex)
         {
             if (!(ex is IOException) && !(ex is UnauthorizedAccessException)) throw;
-            Logger.Warn(ServerEvent.Cleanup, "Could not remove partial file",  ("fileName", Path.GetFileName(partPath)), ("error", ex.Message));
+            Logger.Warn(ServerEvent.Cleanup, "Could not remove partial file", (key: "fileName", value: (object)Path.GetFileName(partPath)), (key: "error", value: (object)ex.Message));
             return false;
         }
     }
