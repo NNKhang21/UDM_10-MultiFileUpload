@@ -54,7 +54,7 @@ public class ClientConfig
     public int DefaultPort { get; set; } = 9000;
     public int MaxConcurrentUploads { get; set; } = 5;
     public int MaxFiles { get; set; } = 50;
-    public int MaxFileSizeMb { get; set; } = 100;
+    public int MaxFileSizeMb { get; set; } = 150;
     public int ChunkSizeKb { get; set; } = 64;
     public int ConnectTimeoutSeconds { get; set; } = 10;
 
