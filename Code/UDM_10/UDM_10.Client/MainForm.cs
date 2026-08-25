@@ -75,6 +75,12 @@ namespace UDM_10.Client
             topPanel.Controls.Add(btnConnect);
             topPanel.Controls.Add(btnDisconnect);
             topPanel.Controls.Add(lblConnectionStatus);
+
+            topPanel.Controls.Remove(btnUploadAll);
+            topPanel.Controls.Remove(btnUploadSelected);
+            bottomPanel.Controls.Add(btnUploadAll);
+            bottomPanel.Controls.Add(btnUploadSelected);
+
             bottomPanel.Controls.Add(lblWaiting);
             bottomPanel.Controls.Add(lblUploading);
             bottomPanel.Controls.Add(lblCompleted);
@@ -84,18 +90,7 @@ namespace UDM_10.Client
             lblLogo.BringToFront();
             lblLogoSub.BringToFront();
 
-            /* int rowStartX = Math.Max(lblLogo.Right, lblLogoSub.Right) + 20;
-             dropZone.Location = new Point(rowStartX, 0);
-             txtServerIp.Location = new Point(dropZone.Right + 20, 10);
-             txtPort.Location = new Point(txtServerIp.Right + 10, 10);
-             btnConnect.Location = new Point(txtPort.Right + 10, 8);
-             btnDisconnect.Location = new Point(btnConnect.Right + 10, 8);
-             lblConnectionStatus.Location = new Point(btnDisconnect.Right + 20, 12);
-             btnTestStatus.Location = new Point(dropZone.Right + 16, 24);
-             btnUploadAll.Location = new Point(btnTestStatus.Right + 16, 16);
-             btnUploadSelected.Location = new Point(btnTestStatus.Right + 16, 60);
-             chkSimulateError.Location = new Point(btnUploadAll.Right + 40, 15);
-             chkSimulateDisconnect.Location = new Point(btnUploadAll.Right + 40, 40);*/
+            
             int rowStartX = Math.Max(lblLogo.Right, lblLogoSub.Right) + 20;
 
             dropZone.Location = new Point(rowStartX, 0);
@@ -111,12 +106,9 @@ namespace UDM_10.Client
 
             // ===== HÀNG 2: CÁC NÚT UPLOAD =====
             btnTestStatus.Location = new Point(dropZone.Right + 16, 55);
-            btnUploadAll.Location = new Point(btnTestStatus.Right + 16, 48);
-            btnUploadSelected.Location = new Point(btnTestStatus.Right + 16, 82);
-
             // ===== DEBUG =====
-            chkSimulateError.Location = new Point(btnUploadAll.Right + 40, 48);
-            chkSimulateDisconnect.Location = new Point(btnUploadAll.Right + 40, 75);
+            chkSimulateError.Location = new Point(btnDisconnect.Right + 20, 12);
+            chkSimulateDisconnect.Location = new Point(btnDisconnect.Right + 20, 37);
             _uploadManager = new UploadManager(new FakeUploader(
                 () => chkSimulateError.Checked,
                 () => chkSimulateDisconnect.Checked));
@@ -307,6 +299,8 @@ namespace UDM_10.Client
             btnCancelAll.Location = new Point(lblConcurrencyInfo.Right + 24, 18);
             btnRetryAllFailed.Location = new Point(btnCancelAll.Right + 10, 18);
             btnDeleteAll.Location = new Point(btnRetryAllFailed.Right + 10, 18);
+            btnUploadSelected.Location = new Point(btnDeleteAll.Right + 24, 18);
+            btnUploadAll.Location = new Point(btnUploadSelected.Right + 10, 18);
         }
         private void StylePrimaryButton(Button btn)
         {
