@@ -44,7 +44,7 @@ namespace UDM_10.Client
         };
         private Label lblLogoSub = new()
         {
-            Text = "Upload Manager",
+            Text = "MultiFileUpload",
             Font = new Font("Segoe UI", 8f),
             ForeColor = TextMutedColor,
             AutoSize = true,
