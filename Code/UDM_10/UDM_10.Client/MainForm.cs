@@ -103,12 +103,11 @@ namespace UDM_10.Client
             btnConnect.Click += btnConnect_Click;
             btnDisconnect.Click += btnDisconnect_Click;
             lblConnectionStatus.Location = new Point(btnDisconnect.Right + 20, 12);
-
             // ===== HÀNG 2: CÁC NÚT UPLOAD =====
             btnTestStatus.Location = new Point(dropZone.Right + 16, 55);
             // ===== DEBUG =====
-            chkSimulateError.Location = new Point(btnDisconnect.Right + 20, 12);
-            chkSimulateDisconnect.Location = new Point(btnDisconnect.Right + 20, 37);
+            chkSimulateError.Location = new Point(btnTestStatus.Right + 20, 50);
+            chkSimulateDisconnect.Location = new Point(btnTestStatus.Right + 20, 80);
             _uploadManager = new UploadManager(new FakeUploader(
                 () => chkSimulateError.Checked,
                 () => chkSimulateDisconnect.Checked));
