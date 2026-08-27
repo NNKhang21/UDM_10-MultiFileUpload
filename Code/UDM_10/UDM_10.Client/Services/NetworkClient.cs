@@ -43,6 +43,10 @@ namespace UDM_10.Client.Services
             try
             {
                 using var testClient = new TcpClient();
+                // Lưu ý: SendTimeout/ReceiveTimeout của TcpClient CHỈ áp dụng cho Read()/Write() đồng bộ,
+                // KHÔNG có tác dụng với ReadAsync()/WriteAsync(). Idle timeout thật sự nằm ở
+                // MessageFramer.ReadAsync(..., idleTimeoutMs) bên dưới. Giữ 2 dòng này chỉ để phòng hờ
+                // nếu sau này có code gọi Read() đồng bộ.
                 testClient.SendTimeout = ReadWriteTimeoutMs;
                 testClient.ReceiveTimeout = ReadWriteTimeoutMs;
 
@@ -104,7 +108,7 @@ namespace UDM_10.Client.Services
                 };
                 await MessageFramer.WriteAsync(stream, startMsg, ct);
 
-                var startAck = await MessageFramer.ReadAsync(stream, ct);
+                var startAck = await MessageFramer.ReadAsync(stream, ct, ReadWriteTimeoutMs);
                 if (startAck is not AckMessage)
                     return new UploadOutcome(false, fileInfo.Name, "Server từ chối bắt đầu upload.");
 
@@ -132,7 +136,7 @@ namespace UDM_10.Client.Services
 
                         await MessageFramer.WriteAsync(stream, chunkMsg, ct);
 
-                        var chunkAck = await MessageFramer.ReadAsync(stream, ct);
+                        var chunkAck = await MessageFramer.ReadAsync(stream, ct, ReadWriteTimeoutMs);
                         if (chunkAck is not AckMessage)
                             return new UploadOutcome(false, fileInfo.Name, "Lỗi truyền tải chunk từ Server.");
 
@@ -145,7 +149,7 @@ namespace UDM_10.Client.Services
                 var doneMsg = new UploadDoneMessage { TransferId = transferId, FileName = fileInfo.Name };
                 await MessageFramer.WriteAsync(stream, doneMsg, ct);
 
-                var resultMsg = await MessageFramer.ReadAsync(stream, ct) as UploadResultMessage;
+                var resultMsg = await MessageFramer.ReadAsync(stream, ct, ReadWriteTimeoutMs) as UploadResultMessage;
                 if (resultMsg != null)
                 {
                     return new UploadOutcome(resultMsg.IsSuccess, resultMsg.ServerFileName ?? fileInfo.Name, resultMsg.Message);
