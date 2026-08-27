@@ -9,6 +9,7 @@ public class UploadManager
 
     private  IFileUploader _uploader;
     private  UploadQueue _uploadQueue;
+    private bool _isNetworkReady;
     private const int MaxFiles = 50;
     private const int MaxFileSizeMb = 150;
     public const int MaxConcurrentUploads = 5;
@@ -17,6 +18,7 @@ public class UploadManager
         _uploader = uploader;
         _uploadQueue = new UploadQueue(uploader, MaxConcurrentUploads);
     }
+    public void SetNetworkReady(bool ready) => _isNetworkReady = ready;
     public void CancelUpload(FileUploadItem item)
     {
         if (item.Status != UploadStatus.Uploading) return;
@@ -110,6 +112,13 @@ public class UploadManager
 
     private async Task UploadOneFileAsync(FileUploadItem item)
     {
+        if (!_isNetworkReady)                                  
+        {
+            item.Status = UploadStatus.Failed;
+            item.ErrorMessage = "Chưa kết nối tới Server. Vui lòng bấm Connect trước khi upload.";
+            return;
+        }
+
         item.Status = UploadStatus.Uploading;
         item.Cts?.Dispose();
         item.Cts = new CancellationTokenSource();

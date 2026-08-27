@@ -20,20 +20,6 @@ namespace UDM_10.Client
         private static readonly Color BorderColor = ColorTranslator.FromHtml("#E2E4EA");
         private static readonly Color TextMutedColor = ColorTranslator.FromHtml("#6B7280");
         private static readonly Color TextDarkColor = ColorTranslator.FromHtml("#374151");
-        private CheckBox chkSimulateError = new()
-        {
-            Text = "Giả lập lỗi (debug)",
-            AutoSize = true,
-            Location = new Point(900, 15),
-            Checked = false
-        };
-        private CheckBox chkSimulateDisconnect = new()
-        {
-            Text = "Giả lập mất kết nối (debug)",
-            AutoSize = true,
-            Location = new Point(900, 40),
-            Checked = false
-        };
         private Label lblLogo = new()
         {
             Text = "UTH",
@@ -66,8 +52,6 @@ namespace UDM_10.Client
             StyleLinkButton(btnChooseFiles);
             StyleSecondaryButton(btnTestStatus);
 
-            topPanel.Controls.Add(chkSimulateError);
-            topPanel.Controls.Add(chkSimulateDisconnect);
             topPanel.Controls.Add(lblLogo);
             topPanel.Controls.Add(lblLogoSub);
             topPanel.Controls.Add(txtServerIp);
@@ -106,11 +90,8 @@ namespace UDM_10.Client
             // ===== HÀNG 2: CÁC NÚT UPLOAD =====
             btnTestStatus.Location = new Point(dropZone.Right + 16, 55);
             // ===== DEBUG =====
-            chkSimulateError.Location = new Point(btnTestStatus.Right + 20, 50);
-            chkSimulateDisconnect.Location = new Point(btnTestStatus.Right + 20, 80);
-            _uploadManager = new UploadManager(new FakeUploader(
-                () => chkSimulateError.Checked,
-                () => chkSimulateDisconnect.Checked));
+            _uploadManager = new UploadManager(new NetworkClient());
+            _uploadManager.SetNetworkReady(false);
 
 
             gridFiles.AutoGenerateColumns = false;
@@ -263,6 +244,7 @@ namespace UDM_10.Client
 
             lblConcurrencyInfo.Text = $"⚡ Đồng thời tối đa: {UploadManager.MaxConcurrentUploads} file";
             UpdateFooter();
+            SetUploadButtonsEnabled(false);
         }
 
         private void UpdateFooter()
@@ -312,7 +294,11 @@ namespace UDM_10.Client
             btn.MouseEnter += (s, e) => btn.BackColor = AccentDarkColor;
             btn.MouseLeave += (s, e) => btn.BackColor = AccentColor;
         }
-
+        private void SetUploadButtonsEnabled(bool enabled)
+        {
+            btnUploadAll.Enabled = enabled;
+            btnUploadSelected.Enabled = enabled;
+        }
         private void StyleSecondaryButton(Button btn)
         {
             btn.FlatStyle = FlatStyle.Flat;
@@ -611,12 +597,15 @@ namespace UDM_10.Client
                     lblConnectionStatus.Text = $"● Đã kết nối {txtServerIp.Text}:{txtPort.Text}";
                     lblConnectionStatus.ForeColor = Color.FromArgb(22, 163, 74);
                     _uploadManager.SwitchUploader(_networkClient);
+                    _uploadManager.SetNetworkReady(true);
+                    SetUploadButtonsEnabled(true);
                 }
                 else
                 {
                     string errMsg = _networkClient.LastError ?? "Kết nối thất bại.";
                     lblConnectionStatus.Text = "● Kết nối thất bại";
                     lblConnectionStatus.ForeColor = Color.FromArgb(185, 28, 28);
+                    SetUploadButtonsEnabled(false);
                     MessageBox.Show(errMsg + "\n\n💡 Gợi ý:\n1. Đảm bảo Server đã chạy trước.\n2. Kiểm tra IP + Port đúng (mặc định: 127.0.0.1:9000).\n3. Tắt tường lửa nếu cần.",
                         "Không thể kết nối Server", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
@@ -641,8 +630,11 @@ namespace UDM_10.Client
             lblConnectionStatus.Text = "● Đã ngắt kết nối";
             lblConnectionStatus.ForeColor = Color.Gray;
 
-            // BƯỚC 4: Chuyển sang FakeUploader (mode offline)
-            _uploadManager.SwitchUploader(new FakeUploader(() => chkSimulateError.Checked, () => chkSimulateDisconnect.Checked));
+            // BƯỚC 4: Reset về NetworkClient rỗng (chưa connect) + khóa upload,
+            // không còn dùng FakeUploader để đảm bảo mọi thao tác upload luôn đi qua mạng thật
+            _uploadManager.SwitchUploader(new NetworkClient());  
+            _uploadManager.SetNetworkReady(false);
+            SetUploadButtonsEnabled(false);
         }
         private async void gridFiles_CellContentClick(object? sender, DataGridViewCellEventArgs e)
         {
@@ -667,6 +659,12 @@ namespace UDM_10.Client
                 {
                     MessageBox.Show("Chỉ thử lại được file Failed hoặc Cancelled.", "Không thể thử lại",
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+                if (_networkClient == null)
+                {
+                    MessageBox.Show("Vui lòng Connect tới Server trước khi thử lại.", "Chưa kết nối",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
                 await _uploadManager.RetryUploadAsync(item);
