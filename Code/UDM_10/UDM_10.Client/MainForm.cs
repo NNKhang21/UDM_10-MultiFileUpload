@@ -661,13 +661,7 @@ namespace UDM_10.Client
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return;
                 }
-                if (_networkClient == null)
-                {
-                    MessageBox.Show("Vui lòng Connect tới Server trước khi thử lại.", "Chưa kết nối",
-                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-                await _uploadManager.RetryUploadAsync(item);
+                await _uploadManager.RetryUploadAsync(item);   // để UploadOneFileAsync tự chặn nếu chưa Connect
             }
             else if (columnName == "colDelete")
             {
