@@ -71,6 +71,10 @@ namespace UDM_10.Shared.Models
             Type = type;
             Timestamp = DateTime.Now;
         }
+        internal void SetType(MessageType type)
+        {
+            Type = type;
+        }
 
         // Cho phép đối chiếu ACK với đúng lượt upload
         public string TransferId { get; set; } = string.Empty;

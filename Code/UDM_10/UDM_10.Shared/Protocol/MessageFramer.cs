@@ -59,23 +59,23 @@ namespace UDM_10.Shared.Protocol
 
         // Overload ReadAsync có idle timeout.
         public static async Task<MessageBase?> ReadAsync(
-            Stream stream,
-            CancellationToken token,
-            int idleTimeoutMs)
-        {
-            string? json =
-                await ReadJsonAsync(
-                    stream,
-                    token,
-                    idleTimeoutMs);
+      Stream stream,
+      CancellationToken token,
+      int idleTimeoutMs)
+        {
+            string? json =
+              await ReadJsonAsync(
+                stream,
+                token,
+                idleTimeoutMs);
 
-            if (json == null)
-            {
-                return null;
-            }
+            if (json == null)
+            {
+                return null;
+            }
 
-            return Deserialize(json);
-        }
+            return Deserialize(json);
+        }
 
         // =========================================================
         // READ JSON
@@ -265,43 +265,42 @@ namespace UDM_10.Shared.Protocol
         private static MessageBase Deserialize(
             string json)
         {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(json))
-                {
-                    throw new InvalidDataException(
-                        "Dữ liệu Protocol không hợp lệ: JSON rỗng.");
-                }
+            try
+            {
+                if (string.IsNullOrWhiteSpace(json))
+                {
+                    throw new InvalidDataException(
+                      "Dữ liệu Protocol không hợp lệ: JSON rỗng.");
+                }
 
-            using JsonDocument doc =
-                JsonDocument.Parse(json);
+                using JsonDocument doc =
+                    JsonDocument.Parse(json);
 
-                if (doc.RootElement.ValueKind != JsonValueKind.Object)
-                {
-                    throw new InvalidDataException(
-                        "Dữ liệu Protocol không hợp lệ: JSON phải là một object.");
-                }
+                if (doc.RootElement.ValueKind != JsonValueKind.Object)
+                {
+                    throw new InvalidDataException(
+                      "Dữ liệu Protocol không hợp lệ: JSON phải là một object.");
+                }
 
-                if (!doc.RootElement.TryGetProperty(
-                        "Type",
-                        out JsonElement typeElement))
-                {
-                    throw new InvalidDataException(
-                        "Dữ liệu Protocol không hợp lệ: thiếu trường 'Type'.");
-                }
+                if (!doc.RootElement.TryGetProperty(
+                    "Type",
+                    out JsonElement typeElement))
+                {
+                    throw new InvalidDataException(
+                      "Dữ liệu Protocol không hợp lệ: thiếu trường 'Type'.");
+                }
 
-                if (typeElement.ValueKind != JsonValueKind.Number ||
-                    !typeElement.TryGetInt32(out int typeValue))
-                {
-                    throw new InvalidDataException(
-                        "Dữ liệu Protocol không hợp lệ: trường 'Type' phải là số nguyên.");
-                }
+                if (typeElement.ValueKind != JsonValueKind.Number ||
+                  !typeElement.TryGetInt32(out int typeValue))
+                {
+                    throw new InvalidDataException(
+                      "Dữ liệu Protocol không hợp lệ: trường 'Type' phải là số nguyên.");
+                }
 
-            MessageType type =
-                (MessageType)doc.RootElement
-                    .GetProperty("Type")
-                    .GetInt32();
-
+                MessageType type =
+     (MessageType)doc.RootElement
+         .GetProperty("Type")
+         .GetInt32();
 
                 MessageBase? message = type switch
                 {
@@ -315,7 +314,7 @@ namespace UDM_10.Shared.Protocol
                         JsonSerializer.Deserialize<UploadDoneMessage>(json),
 
                     MessageType.UploadStartAck or MessageType.UploadChunkAck =>
-                        JsonSerializer.Deserialize<AckMessage>(json),
+                        DeserializeAckMessage(json, type),
 
                     MessageType.UploadResult =>
                         JsonSerializer.Deserialize<UploadResultMessage>(json),
@@ -323,6 +322,7 @@ namespace UDM_10.Shared.Protocol
                     _ => throw new NotSupportedException(
                         $"Không hỗ trợ deserialize MessageType = {type}")
                 };
+
                 if (message == null)
                 {
                     throw new InvalidDataException(
@@ -331,18 +331,36 @@ namespace UDM_10.Shared.Protocol
 
                 return message;
             }
-            catch (JsonException ex)
-            {
-                throw new InvalidDataException(
-                    "Dữ liệu Protocol không hợp lệ: JSON sai cấu trúc.",
-                    ex);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                throw new InvalidDataException(
-                    "Dữ liệu Protocol không hợp lệ: thiếu trường bắt buộc.",
-                    ex);
-            }
+            catch (JsonException ex)
+            {
+                throw new InvalidDataException(
+                    "Dữ liệu Protocol không hợp lệ: JSON sai cấu trúc.",
+                    ex);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                throw new InvalidDataException(
+                    "Dữ liệu Protocol không hợp lệ: thiếu trường bắt buộc.",
+                    ex);
+            }
+        }
+
+        private static AckMessage DeserializeAckMessage(
+            string json,
+            MessageType type)
+        {
+            AckMessage? message =
+                JsonSerializer.Deserialize<AckMessage>(json);
+
+            if (message == null)
+            {
+                throw new InvalidDataException(
+                    "Dữ liệu Protocol không hợp lệ: không thể deserialize AckMessage.");
+            }
+
+            message.SetType(type);
+
+            return message;
         }
     }
 }

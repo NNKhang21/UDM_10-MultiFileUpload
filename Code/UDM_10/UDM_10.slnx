@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="UDM_10.Client/UDM_10.Client.csproj" />
+  <Project Path="UDM_10.ProtocolTests/UDM_10.ProtocolTests.csproj" />
   <Project Path="UDM_10.Server/UDM_10.Server.csproj" />
   <Project Path="UDM_10.Shared/UDM_10.Shared.csproj" />
 </Solution>
