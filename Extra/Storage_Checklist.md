@@ -15,7 +15,7 @@ Checklist này dùng để kiểm tra các yêu cầu bắt buộc của phần 
 | # | Yêu cầu | Ý nghĩa | Trạng thái |
 |---|---|---|---|
 | 5 | Quy tắc xử lý trùng tên | REJECT / OVERWRITE / RENAME theo cấu hình | Đã làm |
-| 6 | Không lỗi khi 2 file trùng tên upload cùng lúc | Không để hai upload cùng chiếm một file `.part` hoặc cùng tên đích | Đã làm |
+| 6 | Không lỗi khi 2 file trùng tên upload cùng lúc | Hai upload được xử lý độc lập, không gây mất dữ liệu hoặc ghi đè lẫn nhau | Đã làm |
 
 ## 3. Xử lý sự cố giữa chừng & giới hạn tài nguyên
 
@@ -23,7 +23,7 @@ Checklist này dùng để kiểm tra các yêu cầu bắt buộc của phần 
 |---|---|---|---|
 | 7 | Đối chiếu size thực nhận với size đã báo | Sai lệch phải từ chối upload và rollback `.part` | Đã làm |
 | 8 | Chặn Client khai sai kích thước từng phần dữ liệu | Không cho chunk vượt quá phần dữ liệu còn lại hoặc giới hạn chunk | Đã làm |
-| 9 | Dọn dữ liệu dở dang khi mất kết nối giữa chừng | Rollback/Abort xóa `.part`; việc gọi Abort khi disconnect cần xác nhận ở ClientSession | Đã làm |
+| 9 | Dọn dữ liệu dở dang khi mất kết nối giữa chừng | Rollback/Abort phải xóa `.part`; việc gọi Abort khi disconnect cần xác nhận ở `ClientSession` | Đã làm |
 | 10 | Ghi log khi từ chối 1 file | Lưu lý do validation/upload thất bại để phục vụ kiểm thử | Đã làm |
 | 11 | Chặn tên thiết bị dành riêng của Windows | CON, PRN, AUX, NUL, COM1-9, LPT1-9 bị từ chối | Đã làm |
 
@@ -31,3 +31,4 @@ Checklist này dùng để kiểm tra các yêu cầu bắt buộc của phần 
 - Đây là checklist dùng để kiểm tra phần Storage & Validate trước khi nghiệm thu
 - Mỗi mục sau khi hoàn thành nên được kiểm thử và đánh dấu đạt
 - Checklist này chỉ mô tả yêu cầu Storage & Validate, không mô tả chi tiết phần xử lý của GUI
+- TC_31–TC_38 trong bộ test hiện tại cung cấp minh chứng cho các nhóm validation, duplicate policy, upload đồng thời và kiểm tra thứ tự chunk.
