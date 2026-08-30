@@ -1,10 +1,9 @@
 ﻿namespace UDM_10.Shared.Protocol;
 
 using System.IO;
-
 public static class ServerEvent
 {
-    // viêt in hoa cho de nhin 
+    
     public const string ServerStart = "SERVER_START";
     public const string Connect = "CONNECT";
     public const string Disconnect = "DISCONNECT";

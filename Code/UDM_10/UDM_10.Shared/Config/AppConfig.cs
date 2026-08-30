@@ -40,7 +40,7 @@ public class ServerConfig
         }
     }
 }
-    // Gia tri mac dinh MaxConcurrentUploads = 5: tham khao chuan thuc te - trinh duyet Chrome/
+    // Gia tri mac dinh MaxConcurrentUploads = 5: 
     // Firefox gioi han 6 ket noi dong thoi/host, cac thu vien upload pho bien (Uppy, Dropzone.js,
     // Fine Uploader) mac dinh 3-5 file song song. Chon 5 vi Server o day la TcpListener don gian
     // (1 Task/ket noi, ghi truc tiep file .part xuong dia, khong co thread-pool/queue chuyen dung)

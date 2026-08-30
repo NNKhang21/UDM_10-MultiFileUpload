@@ -16,7 +16,7 @@ public static class Logger
             Directory.CreateDirectory(dir);
     }
 
-    // OVERLOAD de cac  file khac co the goi don gian hon  
+    // OVERLOAD ĐỂ CAC FILE KHÁC CÓ THỂ GỌI ĐON GIẢN HƠN 
     public static void Init()
     {
         Init("logs/server.log");
