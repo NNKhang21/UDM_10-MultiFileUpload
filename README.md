@@ -16,14 +16,16 @@
 | |Nguyễn Nguyên Khang | | Client - GUI |
 | |Hồ Thiên Phú | | Client - Network & Queue |
 
+> ⚠️ Cần điền đầy đủ MSSV và link GitHub từng thành viên trước khi nộp.
+
 ## Kiến trúc
 - Mô hình: **Client–Server**
-- Client: WPF (.NET 10), chạy như 1 tiến trình riêng
+- Client: **WinForms** (.NET 10, `net10.0-windows`), chạy như 1 tiến trình riêng
 - Server: Console App (.NET 10), `TcpListener`, mỗi kết nối chạy trên 1 Task riêng
 - Shared: thư viện dùng chung cho protocol, model, cấu hình
 
 ```
-Client (WPF) ──TCP──> Server (Console)
+Client (WinForms) ──TCP──> Server (Console)
      │                      │
   UploadQueue          ClientSession (1/kết nối)
   NetworkClient        FileStorageService
@@ -36,13 +38,13 @@ Client (WPF) ──TCP──> Server (Console)
 
 ## Protocol
 - **Transport:** TCP
-- **Port mặc định:** 9000 (cấu hình trong `appsettings.json`, không hard-code)
+- **Port mặc định:** 9000 (Server đọc từ `appsettings.json`, không hard-code)
 - **Framing:** `[4 byte length, big-endian][UTF-8 JSON payload]`
 - **Message types:** `UploadStart → UploadStartAck → UploadChunk (nhiều lần) → UploadDone → UploadResult`, hoặc `Error`
 
 ## Giới hạn sản phẩm (công bố rõ)
-- Upload đồng thời tối đa: cấu hình qua `MaxConcurrentUploads` (mặc định **5** — tham khảo chuẩn thực tế: Chrome/Firefox giới hạn 6 kết nối đồng thời/host, các thư viện upload phổ biến như Uppy/Dropzone.js mặc định 3–5 file song song; chọn 5 để demo thấy rõ nhiều file chạy song song mà không gây tranh chấp I/O đĩa khi Server ghi nhiều file cùng lúc trên 1 máy)
-- Kích thước file tối đa: cấu hình qua `MaxFileSizeMb` (mặc định 100 MB)
+- Upload đồng thời tối đa: **5** (tham khảo chuẩn thực tế: Chrome/Firefox giới hạn 6 kết nối đồng thời/host, các thư viện upload phổ biến như Uppy/Dropzone.js mặc định 3–5 file song song; chọn 5 để demo thấy rõ nhiều file chạy song song mà không gây tranh chấp I/O đĩa khi Server ghi nhiều file cùng lúc trên 1 máy)
+- Kích thước file tối đa: **150 MB** (Server validate, cấu hình qua `appsettings.json`)
 - Chính sách trùng tên: `DuplicatePolicy` — mặc định **Rename** (`file(1).ext`)
 - Không hỗ trợ: Pause/Resume, upload thư mục, Web App
 
@@ -53,24 +55,28 @@ Client (WPF) ──TCP──> Server (Console)
 
 ## Cấu hình
 ### Server (`Code/UDM_10.Server/appsettings.json`)
+File này **được Server đọc thật** lúc khởi động (`ServerConfig.Load`).
+
 | Key | Mô tả | Mặc định |
 |-----|-------|----------|
 | Host | IP bind | 0.0.0.0 |
 | Port | Port lắng nghe | 9000 |
 | UploadDirectory | Thư mục lưu file | ./uploads |
-| MaxFileSizeMb | Giới hạn file | 100 |
+| MaxFileSizeMb | Giới hạn file | 150 |
+| ChunkSizeKb | Dùng để Server validate kích thước mỗi chunk nhận từ Client | 64 |
 | DuplicatePolicy | Rename / Overwrite / Reject | Rename |
 | IdleTimeoutSeconds | Số giây tối đa chờ dữ liệu mới từ 1 Client (frame điều khiển lẫn từng chunk) trước khi coi là "treo" và chủ động đóng kết nối | 30 |
 
-### Client (`Code/UDM_10.Client/appsettings.json`)
-| Key | Mô tả | Mặc định |
-|-----|-------|----------|
-| DefaultServerIp | IP Server | 127.0.0.1 |
-| DefaultPort | Port | 9000 |
-| MaxConcurrentUploads | Số file upload song song | 5 |
-| ChunkSizeKb | Kích thước mỗi chunk gửi | 64 |
-| ConnectTimeoutSeconds | Timeout khi Connect | 10 |
-| IdleTimeoutSeconds | Số giây tối đa chờ phản hồi (Ack/Result) từ Server trước khi báo lỗi timeout rõ ràng | 30 |
+### Client
+Client **hiện chưa đọc file `appsettings.json`** — file này tồn tại trên đĩa nhưng chưa được wire vào code (xem mục Hạn chế bên dưới). Tham số mạng của Client hiện tại:
+
+| Tham số | Cách cấu hình thật | Giá trị mặc định |
+|---------|--------------------|--------------------|
+| IP / Port Server | Nhập trực tiếp qua ô nhập trên GUI lúc chạy (không hard-code 1 máy cố định) | 127.0.0.1 : 9000 |
+| MaxConcurrentUploads | Hằng số trong `UploadManager.cs` | 5 |
+| ChunkSizeKb | Hằng số trong `NetworkClient.cs` | 64 |
+| ConnectTimeoutMs | Hằng số trong `NetworkClient.cs` | 5000 |
+| IdleTimeout (chờ Ack/Result từ Server) | Hằng số trong `NetworkClient.cs` | 30000 (30s) |
 
 ## Hướng dẫn chạy
 1. Mở `Code/UDM_10.sln` trong Visual Studio.
@@ -108,6 +114,7 @@ Chi tiết đầy đủ trong `Extra/test-results/functional-test-matrix.md`. T�
 ## Hạn chế và phần chưa hoàn thành
 - Chưa hỗ trợ Pause/Resume
 - Chưa test trên LAN 2 máy thật (mới test qua localhost)
+- Client chưa đọc `appsettings.json` (class `ClientConfig` đã có sẵn trong `UDM_10.Shared` nhưng chưa được gọi `Load()`); tham số Client hiện đang hard-code hằng số trong code, chỉ IP/Port là cấu hình được thật qua GUI lúc chạy
 - (Bổ sung thêm khi làm thực tế)
 
 ## Cấu trúc repository
@@ -123,9 +130,7 @@ UDM_10_MultiFileUpload/
 ├── DOCX/
 ├── PPTX/
 └── Extra/
-    ├── test-data/
-    ├── test-results/
-    └── scripts/
+
 ```
 
 ## Lịch sử commit
