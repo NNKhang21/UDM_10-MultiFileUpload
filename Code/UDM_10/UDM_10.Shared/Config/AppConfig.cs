@@ -56,9 +56,7 @@ public class ServerConfig
         public int ChunkSizeKb { get; set; } = 64;
         public int ConnectTimeoutSeconds { get; set; } = 10;
 
-        // BUGFIX #TIMEOUT: tuong tu ServerConfig.IdleTimeoutSeconds - thoi gian toi da Client
-        // cho phan hoi (UploadStartAck/UploadResult) tu Server truoc khi bao loi ro rang thay
-        // vi treo vo han neu Server bi "dong" (process con song nhung khong xu ly).
+        
         public int IdleTimeoutSeconds { get; set; } = 30;
 
         public static ClientConfig Load(string path)
