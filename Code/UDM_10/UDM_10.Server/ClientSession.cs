@@ -1,6 +1,3 @@
-
-
-
 using System;
 using System.IO;
 using System.Net.Sockets;
@@ -20,6 +17,10 @@ namespace UDM_10.Server
 
         // Đảm bảo Stop() chỉ thực hiện cleanup một lần.
         private int _stopped;
+
+        // TransferId của upload đang dở dang (nếu có), dùng để dọn dẹp file .part
+        // khi Client mất kết nối đột ngột giữa chừng (rút mạng, tắt Client, timeout...).
+        private string? _pendingTransferId;
 
         public ClientSession(
             TcpClient client,
@@ -84,11 +85,37 @@ namespace UDM_10.Server
             {
                 Logger.Warn(
                     $"[Unexpected Session Error] Client {remoteEndPoint}. " +
-                    $"Details: {ex}");
-            }
+$"Details: {ex}");
+}
             finally
             {
-Stop();
+                // Client rớt kết nối (rút mạng / tắt đột ngột / timeout) khi đang có
+                // upload dở dang => dọn dẹp file .part, không để sót file khoá.
+                AbortPendingUploadIfAny(remoteEndPoint);
+                Stop();
+            }
+        }
+
+        private void AbortPendingUploadIfAny(string remoteEndPoint)
+        {
+            string? transferId = Interlocked.Exchange(ref _pendingTransferId, null);
+            if (string.IsNullOrEmpty(transferId))
+                return;
+
+            try
+            {
+                bool aborted = _storage.AbortUpload(transferId);
+                if (aborted)
+                {
+                    Logger.Warn(
+                        $"[Upload Aborted] Client {remoteEndPoint} disconnected " +
+                        $"mid-upload. TransferId={transferId}. Cleaned up .part file.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn(
+                    $"[Abort Cleanup Error] TransferId={transferId}. Details: {ex.Message}");
             }
         }
 
@@ -147,10 +174,12 @@ Stop();
                 switch (message)
                 {
                     case UploadStartMessage start:
+Logger.Info($"[Upload Start] File={start.FileName}");
+await _storage.BeginUploadAsync(start, token);
 
-                        Logger.Info($"[Upload Start] File={start.FileName}");
-
-                        await _storage.BeginUploadAsync(start, token);
+                        // Đánh dấu đang có upload dở dang, để nếu Client rớt mạng
+                        // giữa chừng, RunAsync biết đường gọi AbortUpload dọn .part.
+                        Interlocked.Exchange(ref _pendingTransferId, start.TransferId);
 
                         await SendAckAsync(
                             MessageType.UploadStartAck,
@@ -179,6 +208,12 @@ Stop();
                         // SUA: nhan dung tuple (bool, string) tu FinishUploadAsync
                         var (success, finalFileName) =
                             await _storage.FinishUploadAsync(done, token);
+
+                        // Upload đã kết thúc (thành công hoặc thất bại) và
+                        // FileStorageService đã tự dọn context/.part rồi,
+                        // nên không cần AbortUpload lại khi session đóng nữa.
+                        Interlocked.CompareExchange(ref _pendingTransferId, null, done.TransferId);
+
 // SUA: gui dung finalFileName ve Client, khong con hard-code null
                         await SendResultAsync(
                             success,
@@ -213,10 +248,9 @@ Stop();
             catch (Exception ex)
             {
                 await HandleUploadErrorAsync($"Upload processing error: {ex.Message}", token);
-            }
+}
         }
-
-        private async Task HandleUploadErrorAsync(string errorMessage, CancellationToken token)
+private async Task HandleUploadErrorAsync(string errorMessage, CancellationToken token)
         {
             Logger.Warn($"[Upload Error] {errorMessage}");
 
