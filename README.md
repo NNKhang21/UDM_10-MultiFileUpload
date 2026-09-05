@@ -9,14 +9,15 @@
 ## Thành viên nhóm
 | MSSV | Họ tên | GitHub | Phần việc |
 |------|--------|--------|-----------|
-| |Trần Thị Thúy Nga | | Shared - Protocol |
-| |Nguyễn Thị Cẩm Tiên | | Shared - Config & Log |
-| |Trần Hữu Nam | | Server - Core |
-| |Nguyễn Trần Tiến | | Server - Storage & Validate |
-| |Nguyễn Nguyên Khang | | Client - GUI |
-| |Hồ Thiên Phú | | Client - Network & Queue |
+| 052306010855 | Trần Thị Thúy Nga | Thngatran | Shared - Protocol |
+| 072306011739 | Nguyễn Thị Cẩm Tiên | camtien7426-cmd
+camtien7426-cmd | Shared - Config & Log |
+| 077206010411 | Trần Hữu Nam | namth0411-netizen | Server - Core |
+| 064206000683 | Nguyễn Trần Tiến | tien230526 | Server - Storage & Validate |
+| 087206005109 | Nguyễn Nguyên Khang | NNKhang21
+NNKhang21 | Client - GUI |
+| 052205010238 | Hồ Thiên Phú | hothienphu | Client - Network & Queue |
 
-> ⚠️ Cần điền đầy đủ MSSV và link GitHub từng thành viên trước khi nộp.
 
 ## Kiến trúc
 - Mô hình: **Client–Server**
@@ -46,7 +47,7 @@ Client (WinForms) ──TCP──> Server (Console)
 - Upload đồng thời tối đa: **5** (tham khảo chuẩn thực tế: Chrome/Firefox giới hạn 6 kết nối đồng thời/host, các thư viện upload phổ biến như Uppy/Dropzone.js mặc định 3–5 file song song; chọn 5 để demo thấy rõ nhiều file chạy song song mà không gây tranh chấp I/O đĩa khi Server ghi nhiều file cùng lúc trên 1 máy)
 - Kích thước file tối đa: **150 MB** (Server validate, cấu hình qua `appsettings.json`)
 - Chính sách trùng tên: `DuplicatePolicy` — mặc định **Rename** (`file(1).ext`)
-- Không hỗ trợ: Pause/Resume, upload thư mục, Web App
+- Không triển khai (theo phạm vi đề tài UDM_10 và ràng buộc chung của môn): Pause/Resume (tránh trùng phạm vi với UDM_12), upload thư mục, Web App (đề bài không cho phép)
 
 ## Yêu cầu môi trường
 - Windows 10/11
@@ -86,26 +87,30 @@ Client **hiện chưa đọc file `appsettings.json`** — file này tồn tại
 5. Kiểm tra file đã lưu trong `Code/UDM_10.Server/uploads/`.
 
 ## Kiểm thử
-Chi tiết đầy đủ trong `Extra/test-results/functional-test-matrix.md`. Tóm tắt:
+Chi tiết đầy đủ từng test case (mô tả, input, kết quả, ảnh minh chứng) trong `Extra/Test_Cases_UDM_10.xlsx`, sheet "Danh Sách Test_Case" + 56 sheet con TC_01 → TC_56.
 
-| Loại test | Số case | Pass | Fail |
-|-----------|---------|------|------|
-| Functional | 10 | | |
-| Negative | 6 | | |
-| Disconnect | 3 | | |
-| Stress (Light/Heavy) | 2 | | |
+| Module | Số case | Pass | Fail |
+|---|---|---|---|
+| Client GUI | 19 | 19 | 0 |
+| Config | 3 | 3 | 0 |
+| Logger | 2 | 2 | 0 |
+| Protocol | 6 | 6 | 0 |
+| Storage & Validate | 9 | 9 | 0 |
+| Server Core | 7 | 7 | 0 |
+| Network & Queue | 5 | 5 | 0 |
+| Tích hợp (End-to-end) | 4 | 4 | 0 |
+| Build (toàn Solution) | 1 | 1 | 0 |
+| **Tổng** | **56** | **56** | **0** |
 
-### Stress test (điền số đo thật — xem `Extra/scripts/Run-StressTest.md`)
-| Chỉ số | Light | Heavy |
-|--------|-------|-------|
-| Tổng dữ liệu | | |
-| Thời gian hoàn tất | | |
-| Throughput trung bình | | |
-| CPU Server (peak) | | |
-| RAM Server | | |
-| Tỷ lệ lỗi | | |
+Bao gồm đủ các loại theo yêu cầu môn học:
+- **Functional**: toàn bộ chức năng bắt buộc (kéo-thả, progress/speed riêng từng file, giới hạn upload đồng thời, xử lý trùng tên...).
+- **Negative / dữ liệu không hợp lệ**: TC_27–TC_38 (path traversal, tên file cấm của Windows, sai kích thước/chunk, sai thứ tự chunk...).
+- **Mất kết nối / ngắt đột ngột**: TC_13, TC_30, TC_41, TC_42, TC_46, TC_54 (rút mạng giữa chừng, tắt Server đột ngột, idle timeout, Ctrl+C shutdown).
+- **Stress / performance – 2 mức tải**: TC_55 (Mức 1: 12 file / 54,9 MB; Mức 2: 13 file / 613,5 MB), theo dõi CPU/RAM qua Task Manager, xác minh toàn vẹn dữ liệu bằng hash SHA-256 (TC_49, TC_52).
 
-**Cấu hình máy test:** CPU ..., RAM ..., OS ...
+**Cấu hình máy test:** CPU ..., RAM ..., OS ... *(điền thông tin máy thật đã dùng để test)*
+
+> Ghi chú rà soát trước khi nộp: trong quá trình tổng hợp lại bảng test case, nhóm đã phát hiện và xử lý 3 điểm chưa nhất quán giữa mô tả kết quả và kết luận Pass/Fail (TC_08 — hành vi Overwrite/Rename; TC_21 — thiếu ảnh log minh chứng; TC_44/TC_45 — ảnh minh chứng bị đảo chỗ), cùng một cột dữ liệu nháp còn sót lại trong sheet tổng hợp. Toàn bộ đã được kiểm tra và cập nhật lại cho khớp với kết quả chạy thực tế; số liệu 56/56 PASS ở trên là số liệu sau khi rà soát.
 
 ## Video demo
 - **Link:** (điền sau khi quay)
@@ -130,8 +135,8 @@ UDM_10_MultiFileUpload/
 ├── DOCX/
 ├── PPTX/
 └── Extra/
-
+    └── Test_Cases_UDM_10.xlsx
 ```
 
 ## Lịch sử commit
-Repository: (điền link GitHub)
+Repository: https://github.com/NNKhang21/UDM_10-MultiFileUpload
