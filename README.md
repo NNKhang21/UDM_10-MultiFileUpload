@@ -10,12 +10,10 @@
 | MSSV | Họ tên | GitHub | Phần việc |
 |------|--------|--------|-----------|
 | 052306010855 | Trần Thị Thúy Nga | Thngatran | Shared - Protocol |
-| 072306011739 | Nguyễn Thị Cẩm Tiên | camtien7426-cmd
-camtien7426-cmd | Shared - Config & Log |
+| 072306011739 | Nguyễn Thị Cẩm Tiên | camtien7426-cmd | Shared - Config & Log |
 | 077206010411 | Trần Hữu Nam | namth0411-netizen | Server - Core |
 | 064206000683 | Nguyễn Trần Tiến | tien230526 | Server - Storage & Validate |
-| 087206005109 | Nguyễn Nguyên Khang | NNKhang21
-NNKhang21 | Client - GUI |
+| 087206005109 | Nguyễn Nguyên Khang | NNKhang21 | Client - GUI |
 | 052205010238 | Hồ Thiên Phú | hothienphu | Client - Network & Queue |
 
 
