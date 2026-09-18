@@ -111,7 +111,7 @@ Bao gồm đủ các loại theo yêu cầu môn học:
 > Ghi chú rà soát trước khi nộp: trong quá trình tổng hợp lại bảng test case, nhóm đã phát hiện và xử lý 3 điểm chưa nhất quán giữa mô tả kết quả và kết luận Pass/Fail (TC_08 — hành vi Overwrite/Rename; TC_21 — thiếu ảnh log minh chứng; TC_44/TC_45 — ảnh minh chứng bị đảo chỗ), cùng một cột dữ liệu nháp còn sót lại trong sheet tổng hợp. Toàn bộ đã được kiểm tra và cập nhật lại cho khớp với kết quả chạy thực tế; số liệu 56/56 PASS ở trên là số liệu sau khi rà soát.
 
 ## Video demo
-- **Link:** [([Link](https://youtu.be/LfdhVG7d4iE))]
+- **Link:** [([UDM10-Net3 Group04](https://youtu.be/LfdhVG7d4iE))]
 - Nội dung: connect, multi-upload, progress/speed, trùng tên, lỗi/disconnect, stress ngắn — mỗi thành viên trình bày phần mình, có hiện mặt.
 
 ## Hạn chế và phần chưa hoàn thành
