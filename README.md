@@ -114,7 +114,6 @@ Bao gồm đủ các loại theo yêu cầu môn học:
   - Đợt 2 (đo lại khi viết báo cáo, mục 3.5 báo cáo DOCX): Tải nhẹ = 10 file / 45,8 MB (01:38,08; 0,467 MB/s; 0% lỗi); Tải nặng = 30 file / 244,3 MB (07:09,88; 0,568 MB/s; 3,33% lỗi — 1/30 file, nghi do IdleTimeout khi Server xử lý đồng thời nhiều kết nối).
   - Cả 2 đợt đều đạt yêu cầu "2 mức tải" và được giữ lại làm bằng chứng song song, không loại bỏ đợt nào.
 
-> Ghi chú rà soát trước khi nộp: trong quá trình tổng hợp lại bảng test case, nhóm đã phát hiện và xử lý 3 điểm chưa nhất quán giữa mô tả kết quả và kết luận Pass/Fail (TC_08 — hành vi Overwrite/Rename; TC_21 — thiếu ảnh log minh chứng; TC_44/TC_45 — ảnh minh chứng bị đảo chỗ), cùng một cột dữ liệu nháp còn sót lại trong sheet tổng hợp. Toàn bộ đã được kiểm tra và cập nhật lại cho khớp với kết quả chạy thực tế; số liệu 56/56 PASS ở trên là số liệu sau khi rà soát.
 
 ## Video demo
 - **Link:** [([UDM10-Net3 Group04](https://youtu.be/LfdhVG7d4iE))]
