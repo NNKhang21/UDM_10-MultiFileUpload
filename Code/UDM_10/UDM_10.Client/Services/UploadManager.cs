@@ -1,18 +1,22 @@
 ﻿using System.ComponentModel;
 using UDM_10.Client.Models;
 using System.IO;
+using UDM_10.Shared.Config;
 namespace UDM_10.Client.Services;
 
 public class UploadManager
 {
     public BindingList<FileUploadItem> Files { get; } = new();
 
-    private  IFileUploader _uploader;
-    private  UploadQueue _uploadQueue;
+    private IFileUploader _uploader;
+    private UploadQueue _uploadQueue;
     private bool _isNetworkReady;
-    private const int MaxFiles = 50;
-    private const int MaxFileSizeMb = 150;
-    public const int MaxConcurrentUploads = 5;
+
+    // Trước đây là const hard-code; giờ đọc từ ClientConfig (appsettings.json) qua constructor.
+    private readonly int MaxFiles;
+    private readonly int MaxFileSizeMb;
+    public readonly int MaxConcurrentUploads;
+
     public void SwitchUploader(IFileUploader uploader)
     {
         _uploader = uploader;
@@ -36,8 +40,13 @@ public class UploadManager
         }
     }
 
-    public UploadManager(IFileUploader uploader)
+    public UploadManager(IFileUploader uploader, ClientConfig? config = null)
     {
+        config ??= new ClientConfig();
+        MaxFiles = config.MaxFiles;
+        MaxFileSizeMb = config.MaxFileSizeMb;
+        MaxConcurrentUploads = config.MaxConcurrentUploads;
+
         _uploader = uploader;
         _uploadQueue = new UploadQueue(uploader, MaxConcurrentUploads);
     }
@@ -112,7 +121,7 @@ public class UploadManager
 
     private async Task UploadOneFileAsync(FileUploadItem item)
     {
-        if (!_isNetworkReady)                                  
+        if (!_isNetworkReady)
         {
             item.Status = UploadStatus.Failed;
             item.ErrorMessage = "Chưa kết nối tới Server. Vui lòng bấm Connect trước khi upload.";
@@ -163,12 +172,12 @@ public class UploadManager
         }
     }
 
-   /* public void CancelAll()
-    {
-        var uploading = Files.Where(f => f.Status == UploadStatus.Uploading).ToList();
-        foreach (var item in uploading)
-            CancelUpload(item);
-    }*/
+    /* public void CancelAll()
+     {
+         var uploading = Files.Where(f => f.Status == UploadStatus.Uploading).ToList();
+         foreach (var item in uploading)
+             CancelUpload(item);
+     }*/
 
     public async Task RetryAllFailedAsync()
     {

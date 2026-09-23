@@ -3,6 +3,7 @@ using System.IO;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using UDM_10.Shared.Config;
 using UDM_10.Shared.Models;
 using UDM_10.Shared.Protocol;
 
@@ -29,8 +30,22 @@ namespace UDM_10.Client.Services
     {
         private string _ipAddress = "127.0.0.1";
         private int _port = 9000;
-        private const int ReadWriteTimeoutMs = 30000;
-        private const int ConnectTimeoutMs = 5000;
+
+        // Trước đây là const hard-code; giờ đọc từ ClientConfig (appsettings.json) qua constructor,
+        // không còn cố định cho một máy/một cấu hình duy nhất.
+        private readonly int ReadWriteTimeoutMs;
+        private readonly int ConnectTimeoutMs;
+        private readonly int ChunkSizeBytes;
+
+        public NetworkClient() : this(new ClientConfig()) { }
+
+        public NetworkClient(ClientConfig config)
+        {
+            config ??= new ClientConfig();
+            ReadWriteTimeoutMs = Math.Max(1, config.IdleTimeoutSeconds) * 1000;
+            ConnectTimeoutMs = Math.Max(1, config.ConnectTimeoutSeconds) * 1000;
+            ChunkSizeBytes = Math.Max(1, config.ChunkSizeKb) * 1024;
+        }
 
         public string? LastError { get; private set; }
 
@@ -112,7 +127,7 @@ namespace UDM_10.Client.Services
                 if (startAck is not AckMessage)
                     return new UploadOutcome(false, fileInfo.Name, "Server từ chối bắt đầu upload.");
 
-                const int chunkSize = 64 * 1024;
+                int chunkSize = ChunkSizeBytes;
                 byte[] buffer = new byte[chunkSize];
                 long totalBytesRead = 0;
                 int chunkIndex = 0;

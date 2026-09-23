@@ -1,15 +1,22 @@
 using System.ComponentModel;
+using System.IO;
 using UDM_10.Client.Models;
 using UDM_10.Client.Services;
+using UDM_10.Shared.Config;
 
 namespace UDM_10.Client
 {
     public partial class MainForm : Form
     {
+        // Đọc appsettings.json (Client) qua ClientConfig.Load() lúc khởi động, thay vì hard-code
+        // IP/Port/MaxConcurrentUploads/ChunkSize/Timeout như trước. Nếu file không tồn tại hoặc lỗi
+        // định dạng, ClientConfig.Load() tự trả về giá trị mặc định (xem UDM_10.Shared/Config/AppConfig.cs).
+        private readonly ClientConfig _clientConfig =
+            ClientConfig.Load(Path.Combine(AppContext.BaseDirectory, "appsettings.json"));
         private readonly UploadManager _uploadManager;
         private readonly BindingSource _fileBindingSource = new();
-        private TextBox txtServerIp = new() { Text = "127.0.0.1", Width = 100 };
-        private TextBox txtPort = new() { Text = "9000", Width = 60 };
+        private TextBox txtServerIp = new() { Width = 100 };
+        private TextBox txtPort = new() { Width = 60 };
         private Button btnConnect = new() { Text = "Connect", AutoSize = true };
         private Button btnDisconnect = new() { Text = "Disconnect", AutoSize = true };
         private Label lblConnectionStatus = new() { Text = "● Chưa kết nối", AutoSize = true, ForeColor = Color.Gray };
@@ -44,6 +51,11 @@ namespace UDM_10.Client
         public MainForm()
         {
             InitializeComponent();
+
+            // IP/Port mặc định lấy từ appsettings.json (ClientConfig) thay vì hard-code trong code.
+            txtServerIp.Text = _clientConfig.DefaultServerIp;
+            txtPort.Text = _clientConfig.DefaultPort.ToString();
+
             StylePrimaryButton(btnUploadAll);
             StyleSecondaryButton(btnCancelAll);
             StyleSecondaryButton(btnRetryAllFailed);
@@ -74,7 +86,7 @@ namespace UDM_10.Client
             lblLogo.BringToFront();
             lblLogoSub.BringToFront();
 
-            
+
             int rowStartX = Math.Max(lblLogo.Right, lblLogoSub.Right) + 20;
 
             dropZone.Location = new Point(rowStartX, 0);
@@ -90,7 +102,7 @@ namespace UDM_10.Client
             // ===== HÀNG 2: CÁC NÚT UPLOAD =====
             btnTestStatus.Location = new Point(dropZone.Right + 16, 55);
             // ===== DEBUG =====
-            _uploadManager = new UploadManager(new NetworkClient());
+            _uploadManager = new UploadManager(new NetworkClient(_clientConfig), _clientConfig);
             _uploadManager.SetNetworkReady(false);
 
 
@@ -242,7 +254,7 @@ namespace UDM_10.Client
                 UpdateFooter();
             };
 
-            lblConcurrencyInfo.Text = $"⚡ Đồng thời tối đa: {UploadManager.MaxConcurrentUploads} file";
+            lblConcurrencyInfo.Text = $"⚡ Đồng thời tối đa: {_uploadManager.MaxConcurrentUploads} file";
             UpdateFooter();
             SetUploadButtonsEnabled(false);
         }
@@ -267,7 +279,7 @@ namespace UDM_10.Client
             lblFailed.Text = $"\uE783 Lỗi: {failed}";
             lblCancelled.Text = $"\uE711 Đã hủy: {cancelled}";
 
-            lblConcurrencyInfo.Text = $"Đồng thời tối đa: {UploadManager.MaxConcurrentUploads} file";
+            lblConcurrencyInfo.Text = $"Đồng thời tối đa: {_uploadManager.MaxConcurrentUploads} file";
 
             // CANH LAI TOAN BO THEO MEP PHAI CUA CONTROL TRUOC - noi duoi nhau, khong dung so co dinh
             int y = lblTotalFiles.Top;
@@ -590,7 +602,7 @@ namespace UDM_10.Client
             btnConnect.Enabled = false;
             try
             {
-                _networkClient = new NetworkClient();
+                _networkClient = new NetworkClient(_clientConfig);
                 bool ok = await _networkClient.ConnectAsync(txtServerIp.Text, port);
                 if (ok)
                 {
@@ -632,7 +644,7 @@ namespace UDM_10.Client
 
             // BƯỚC 4: Reset về NetworkClient rỗng (chưa connect) + khóa upload,
             // không còn dùng FakeUploader để đảm bảo mọi thao tác upload luôn đi qua mạng thật
-            _uploadManager.SwitchUploader(new NetworkClient());  
+            _uploadManager.SwitchUploader(new NetworkClient(_clientConfig));
             _uploadManager.SetNetworkReady(false);
             SetUploadButtonsEnabled(false);
         }
