@@ -10,6 +10,13 @@ namespace UDM_10.Shared.Protocol
 {
     public static class MessageFramer
     {
+        // Giới hạn cứng cho 1 frame JSON (length-prefix). Không liên quan tới dữ liệu file thực tế
+        // (file được cắt thành UploadChunk theo ChunkSizeKb, base64 hoá rồi mới bọc JSON), nên 4 MB
+        // là đủ dư cho payload lớn nhất hợp lệ. Nếu không có giới hạn này, một length header giả
+        // (VD: khai 2 GB) sẽ khiến Server cấp phát buffer khổng lồ ngay lập tức trước khi kịp đọc/
+        // validate nội dung — một dạng DoS đơn giản qua bộ nhớ.
+        public const int MaxFrameSizeBytes = 4 * 1024 * 1024;
+
         // =========================================================
         // WRITE
         // =========================================================
@@ -59,23 +66,23 @@ namespace UDM_10.Shared.Protocol
 
         // Overload ReadAsync có idle timeout.
         public static async Task<MessageBase?> ReadAsync(
-            Stream stream,
-            CancellationToken token,
-            int idleTimeoutMs)
-        {
-            string? json =
-                await ReadJsonAsync(
-                    stream,
-                    token,
-                    idleTimeoutMs);
+      Stream stream,
+      CancellationToken token,
+      int idleTimeoutMs)
+        {
+            string? json =
+              await ReadJsonAsync(
+                stream,
+                token,
+                idleTimeoutMs);
 
-            if (json == null)
-            {
-                return null;
-            }
+            if (json == null)
+            {
+                return null;
+            }
 
-            return Deserialize(json);
-        }
+            return Deserialize(json);
+        }
 
         // =========================================================
         // READ JSON
@@ -119,6 +126,14 @@ namespace UDM_10.Shared.Protocol
             {
                 throw new InvalidDataException(
                     $"Độ dài JSON không hợp lệ: {length}");
+            }
+
+            // Chặn length giả quá lớn TRƯỚC khi cấp phát buffer (xem MaxFrameSizeBytes ở trên) —
+            // tránh Server bị ép cấp phát bộ nhớ khổng lồ chỉ vì 4 byte length header bị giả mạo/hỏng.
+            if (length > MaxFrameSizeBytes)
+            {
+                throw new InvalidDataException(
+                    $"Độ dài JSON vượt giới hạn cho phép: {length} byte (tối đa {MaxFrameSizeBytes} byte).");
             }
 
             // Cho phép payload rỗng.
@@ -265,42 +280,42 @@ namespace UDM_10.Shared.Protocol
         private static MessageBase Deserialize(
             string json)
         {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(json))
-                {
-                    throw new InvalidDataException(
-                        "Dữ liệu Protocol không hợp lệ: JSON rỗng.");
-                }
+            try
+            {
+                if (string.IsNullOrWhiteSpace(json))
+                {
+                    throw new InvalidDataException(
+                      "Dữ liệu Protocol không hợp lệ: JSON rỗng.");
+                }
 
-            using JsonDocument doc =
-                JsonDocument.Parse(json);
+                using JsonDocument doc =
+                    JsonDocument.Parse(json);
 
-                if (doc.RootElement.ValueKind != JsonValueKind.Object)
-                {
-                    throw new InvalidDataException(
-                        "Dữ liệu Protocol không hợp lệ: JSON phải là một object.");
-                }
+                if (doc.RootElement.ValueKind != JsonValueKind.Object)
+                {
+                    throw new InvalidDataException(
+                      "Dữ liệu Protocol không hợp lệ: JSON phải là một object.");
+                }
 
-                if (!doc.RootElement.TryGetProperty(
-                        "Type",
-                        out JsonElement typeElement))
-                {
-                    throw new InvalidDataException(
-                        "Dữ liệu Protocol không hợp lệ: thiếu trường 'Type'.");
-                }
+                if (!doc.RootElement.TryGetProperty(
+                    "Type",
+                    out JsonElement typeElement))
+                {
+                    throw new InvalidDataException(
+                      "Dữ liệu Protocol không hợp lệ: thiếu trường 'Type'.");
+                }
 
-                if (typeElement.ValueKind != JsonValueKind.Number ||
-                    !typeElement.TryGetInt32(out int typeValue))
-                {
-                    throw new InvalidDataException(
-                        "Dữ liệu Protocol không hợp lệ: trường 'Type' phải là số nguyên.");
-                }
+                if (typeElement.ValueKind != JsonValueKind.Number ||
+                  !typeElement.TryGetInt32(out int typeValue))
+                {
+                    throw new InvalidDataException(
+                      "Dữ liệu Protocol không hợp lệ: trường 'Type' phải là số nguyên.");
+                }
 
-            MessageType type =
-                (MessageType)doc.RootElement
-                    .GetProperty("Type")
-                    .GetInt32();
+                MessageType type =
+                    (MessageType)doc.RootElement
+                        .GetProperty("Type")
+                        .GetInt32();
 
 
                 MessageBase? message = type switch
@@ -331,18 +346,18 @@ namespace UDM_10.Shared.Protocol
 
                 return message;
             }
-            catch (JsonException ex)
-            {
-                throw new InvalidDataException(
-                    "Dữ liệu Protocol không hợp lệ: JSON sai cấu trúc.",
-                    ex);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                throw new InvalidDataException(
-                    "Dữ liệu Protocol không hợp lệ: thiếu trường bắt buộc.",
-                    ex);
-            }
+            catch (JsonException ex)
+            {
+                throw new InvalidDataException(
+                  "Dữ liệu Protocol không hợp lệ: JSON sai cấu trúc.",
+                  ex);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                throw new InvalidDataException(
+                  "Dữ liệu Protocol không hợp lệ: thiếu trường bắt buộc.",
+                  ex);
+            }
         }
     }
 }
