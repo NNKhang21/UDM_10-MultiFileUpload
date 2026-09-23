@@ -39,7 +39,7 @@ Client (WinForms) ──TCP──> Server (Console)
 - **Transport:** TCP
 - **Port mặc định:** 9000 (Server đọc từ `appsettings.json`, không hard-code)
 - **Framing:** `[4 byte length, big-endian][UTF-8 JSON payload]`
-- **Message types:** `UploadStart → UploadStartAck → UploadChunk (nhiều lần) → UploadDone → UploadResult`, hoặc `Error`
+- **Message types:** `UploadStart → UploadStartAck → UploadChunk (nhiều lần) → UploadChunkAck → UploadDone → UploadResult` (enum `MessageType` trong `UDM_10.Shared`, không có loại `Error` riêng — lỗi được báo qua `UploadResult` với `IsSuccess = false`)
 
 ## Giới hạn sản phẩm (công bố rõ)
 - Upload đồng thời tối đa: **5** (tham khảo chuẩn thực tế: Chrome/Firefox giới hạn 6 kết nối đồng thời/host, các thư viện upload phổ biến như Uppy/Dropzone.js mặc định 3–5 file song song; chọn 5 để demo thấy rõ nhiều file chạy song song mà không gây tranh chấp I/O đĩa khi Server ghi nhiều file cùng lúc trên 1 máy)
@@ -66,26 +66,31 @@ File này **được Server đọc thật** lúc khởi động (`ServerConfig.L
 | DuplicatePolicy | Rename / Overwrite / Reject | Rename |
 | IdleTimeoutSeconds | Số giây tối đa chờ dữ liệu mới từ 1 Client (frame điều khiển lẫn từng chunk) trước khi coi là "treo" và chủ động đóng kết nối | 30 |
 
-### Client
-Client **hiện chưa đọc file `appsettings.json`** — file này tồn tại trên đĩa nhưng chưa được wire vào code (xem mục Hạn chế bên dưới). Tham số mạng của Client hiện tại:
+### Client (`Code/UDM_10.Client/appsettings.json`)
+File này **được Client đọc thật** lúc khởi động (`ClientConfig.Load`, gọi trong `MainForm`), không còn hard-code.
 
-| Tham số | Cách cấu hình thật | Giá trị mặc định |
-|---------|--------------------|--------------------|
-| IP / Port Server | Nhập trực tiếp qua ô nhập trên GUI lúc chạy (không hard-code 1 máy cố định) | 127.0.0.1 : 9000 |
-| MaxConcurrentUploads | Hằng số trong `UploadManager.cs` | 5 |
-| ChunkSizeKb | Hằng số trong `NetworkClient.cs` | 64 |
-| ConnectTimeoutMs | Hằng số trong `NetworkClient.cs` | 5000 |
-| IdleTimeout (chờ Ack/Result từ Server) | Hằng số trong `NetworkClient.cs` | 30000 (30s) |
+| Key | Mô tả | Mặc định |
+|-----|-------|----------|
+| DefaultServerIp | IP Server điền sẵn vào ô nhập khi mở app | 127.0.0.1 |
+| DefaultPort | Port Server điền sẵn vào ô nhập khi mở app | 9000 |
+| MaxConcurrentUploads | Số file upload đồng thời tối đa | 5 |
+| MaxFiles | Số file tối đa được thêm vào danh sách upload | 50 |
+| MaxFileSizeMb | Kích thước tối đa mỗi file | 150 |
+| ChunkSizeKb | Kích thước mỗi chunk gửi lên Server | 64 |
+| ConnectTimeoutSeconds | Timeout khi mở kết nối TCP | 5 |
+| IdleTimeoutSeconds | Timeout chờ Ack/Result từ Server cho mỗi lần đọc | 30 |
+
+IP/Port vẫn có thể sửa trực tiếp trên GUI lúc chạy (không hard-code 1 máy cố định) — giá trị trong `appsettings.json` chỉ là giá trị điền sẵn ban đầu.
 
 ## Hướng dẫn chạy
-1. Mở `Code/UDM_10.sln` trong Visual Studio.
+1. Mở `Code/UDM_10/UDM_10.slnx` trong Visual Studio.
 2. Set Startup Project = **UDM_10.Server** → F5 (giữ cửa sổ console đang chạy).
 3. Set Startup Project = **UDM_10.Client** → chạy thêm 1 instance (Debug → Start New Instance, hoặc chạy .exe trong `bin/Debug`).
 4. Trên Client: nhập IP/Port → **Connect** → kéo thả file hoặc **Chọn file...** → **Upload tất cả**.
 5. Kiểm tra file đã lưu trong `Code/UDM_10.Server/uploads/`.
 
 ## Kiểm thử
-Chi tiết đầy đủ từng test case (mô tả, input, kết quả, ảnh minh chứng) trong `Extra/Test_Cases_UDM_10.xlsx`, sheet "Danh Sách Test_Case" + 56 sheet con TC_01 → TC_56.
+Chi tiết đầy đủ từng test case (mô tả, input, kết quả, ảnh minh chứng) trong `Extra/Test Cases UDM_10.xlsx`, sheet "Danh Sách Test_Case" + 56 sheet con TC_01 → TC_56.
 
 | Module | Số case | Pass | Fail |
 |---|---|---|---|
@@ -104,9 +109,10 @@ Bao gồm đủ các loại theo yêu cầu môn học:
 - **Functional**: toàn bộ chức năng bắt buộc (kéo-thả, progress/speed riêng từng file, giới hạn upload đồng thời, xử lý trùng tên...).
 - **Negative / dữ liệu không hợp lệ**: TC_27–TC_38 (path traversal, tên file cấm của Windows, sai kích thước/chunk, sai thứ tự chunk...).
 - **Mất kết nối / ngắt đột ngột**: TC_13, TC_30, TC_41, TC_42, TC_46, TC_54 (rút mạng giữa chừng, tắt Server đột ngột, idle timeout, Ctrl+C shutdown).
-- **Stress / performance – 2 mức tải**: TC_55 (Mức 1: 12 file / 54,9 MB; Mức 2: 13 file / 613,5 MB), theo dõi CPU/RAM qua Task Manager, xác minh toàn vẹn dữ liệu bằng hash SHA-256 (TC_49, TC_52).
-
-**Cấu hình máy test:** CPU ..., RAM ..., OS ... *(điền thông tin máy thật đã dùng để test)*
+- **Stress / performance – 2 mức tải, ghi nhận qua 2 đợt đo**:
+  - Đợt 1 (TC_55, bộ test case gốc): Mức 1 = 10 file / 54,9 MB (138 giây; 0,40 MB/s; CPU peak 48%; RAM peak ~45 MB; 0% lỗi); Mức 2 = 12 file / 614,9 MB (450 giây; 1,53 MB/s; CPU peak 55%; RAM peak ~85 MB; 0% lỗi). Xác minh toàn vẹn dữ liệu bằng hash SHA-256 (TC_49, TC_52).
+  - Đợt 2 (đo lại khi viết báo cáo, mục 3.5 báo cáo DOCX): Tải nhẹ = 10 file / 45,8 MB (01:38,08; 0,467 MB/s; 0% lỗi); Tải nặng = 30 file / 244,3 MB (07:09,88; 0,568 MB/s; 3,33% lỗi — 1/30 file, nghi do IdleTimeout khi Server xử lý đồng thời nhiều kết nối).
+  - Cả 2 đợt đều đạt yêu cầu "2 mức tải" và được giữ lại làm bằng chứng song song, không loại bỏ đợt nào.
 
 > Ghi chú rà soát trước khi nộp: trong quá trình tổng hợp lại bảng test case, nhóm đã phát hiện và xử lý 3 điểm chưa nhất quán giữa mô tả kết quả và kết luận Pass/Fail (TC_08 — hành vi Overwrite/Rename; TC_21 — thiếu ảnh log minh chứng; TC_44/TC_45 — ảnh minh chứng bị đảo chỗ), cùng một cột dữ liệu nháp còn sót lại trong sheet tổng hợp. Toàn bộ đã được kiểm tra và cập nhật lại cho khớp với kết quả chạy thực tế; số liệu 56/56 PASS ở trên là số liệu sau khi rà soát.
 
@@ -116,8 +122,8 @@ Bao gồm đủ các loại theo yêu cầu môn học:
 
 ## Hạn chế và phần chưa hoàn thành
 - Chưa hỗ trợ Pause/Resume
-- Chưa test trên LAN 2 máy thật (mới test qua localhost)
-- Client chưa đọc `appsettings.json` (class `ClientConfig` đã có sẵn trong `UDM_10.Shared` nhưng chưa được gọi `Load()`); tham số Client hiện đang hard-code hằng số trong code, chỉ IP/Port là cấu hình được thật qua GUI lúc chạy
+- Kiểm thử thực tế sử dụng hai tiến trình Client–Server chạy độc lập trên cùng máy thông qua TCP localhost (đúng yêu cầu "2 tiến trình riêng"). Chưa thực hiện kiểm thử trên hai máy vật lý khác nhau qua LAN.
+- Đã đối chiếu tính toàn vẹn dữ liệu bằng SHA-256 trong quá trình kiểm thử (TC_49, TC_52 — khớp 100%), nhưng bước so khớp checksum này làm thủ công khi test, chưa được tích hợp trực tiếp vào protocol để Server tự động xác minh trong luồng xử lý chính.
 - (Bổ sung thêm khi làm thực tế)
 
 ## Cấu trúc repository
@@ -126,14 +132,15 @@ UDM_10_MultiFileUpload/
 ├── README.md
 ├── .gitignore
 ├── Code/
-│   ├── UDM_10.sln
-│   ├── UDM_10.Shared/
-│   ├── UDM_10.Server/
-│   └── UDM_10.Client/
+│   └── UDM_10/
+│       ├── UDM_10.slnx
+│       ├── UDM_10.Shared/
+│       ├── UDM_10.Server/
+│       └── UDM_10.Client/
 ├── DOCX/
 ├── PPTX/
 └── Extra/
-    └── Test_Cases_UDM_10.xlsx
+    └── Test Cases UDM_10.xlsx
 ```
 
 ## Lịch sử commit
